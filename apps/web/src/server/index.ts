@@ -11,9 +11,8 @@ for (const [name, consequence] of darkSecrets()) {
   console.warn(`[ship-dark] ${name} ikke sat — ${consequence}`);
 }
 
-// Dynamisk import + catch: @upmetrics/sdk@0.3.0 shipper extensionless
-// ESM-imports (./scrub) der fejler i Nodes resolver (Vite dev-SSR; Bun-prod
-// er ok) — meldt til upmetrics. Og telemetri-init må aldrig vælte boot.
+// Dynamisk import + catch: telemetri-init må aldrig vælte boot
+// (0.3.0's ESM-pakkefejl viste præcis dét scenarie; fixet i 0.3.1).
 if (env.UPMETRICS_DSN) {
   import("@upmetrics/sdk")
     .then(({ init }) =>
