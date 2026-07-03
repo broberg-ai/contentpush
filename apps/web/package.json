@@ -12,9 +12,11 @@
   "dependencies": {
     "@broberg/ai-sdk": "^0.21.1",
     "@broberg/config": "^0.2.0",
+    "@broberg/cron": "^0.1.0",
     "@broberg/db-sdk": "^0.1.0",
     "@broberg/media": "^0.1.0",
     "@broberg/media-transform": "^0.1.0",
+    "@broberg/notify": "0.1.0",
     "@broberg/theme": "^0.3.1",
     "@upmetrics/sdk": "^0.3.0",
     "dotenv": "^17.4.2",

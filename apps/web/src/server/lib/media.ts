@@ -4,13 +4,15 @@ import { env } from "../env";
 // Ship-dark: uden R2-creds er media null og upload-ruter svarer 503.
 // Bucket provisioneres af buddy via dns-mcp (EU-jurisdiction, immutable).
 export const media =
-  env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY
+  env.CONTENTPUSH_R2_ACCOUNT_ID &&
+  env.CONTENTPUSH_R2_ACCESS_KEY_ID &&
+  env.CONTENTPUSH_R2_SECRET_ACCESS_KEY
     ? createMedia({
         provider: "r2",
-        accountId: env.R2_ACCOUNT_ID,
-        accessKeyId: env.R2_ACCESS_KEY_ID,
-        secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-        bucket: env.R2_BUCKET ?? "contentpush-media",
+        accountId: env.CONTENTPUSH_R2_ACCOUNT_ID,
+        accessKeyId: env.CONTENTPUSH_R2_ACCESS_KEY_ID,
+        secretAccessKey: env.CONTENTPUSH_R2_SECRET_ACCESS_KEY,
+        bucket: env.CONTENTPUSH_R2_BUCKET ?? "contentpush-media",
         jurisdiction: "eu",
       })
     : null;
