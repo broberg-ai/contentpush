@@ -1,11 +1,20 @@
 import { render } from "preact";
+import { initTheme } from "@broberg/theme/preact";
+import "./styles/tokens.css";
+import "./styles/app.css";
+
+initTheme({ defaultTheme: "light-warm" });
 
 function App() {
   return (
-    <main data-testid="app-root">
-      <h1>Contentpush</h1>
-      <p>Scaffold kører — dashboard kommer i F005.</p>
-    </main>
+    <div class="app-shell" data-testid="app-root">
+      <header class="app-header" data-testid="app-header">
+        <h1>Contentpush</h1>
+      </header>
+      <main class="app-main" data-testid="app-main">
+        <p class="placeholder">Scaffold kører — dashboard kommer i F005.</p>
+      </main>
+    </div>
   );
 }
 
