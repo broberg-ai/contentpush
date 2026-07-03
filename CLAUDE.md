@@ -9,14 +9,13 @@ cardmem Settings) to complete setup.
 
 ## Project layout
 
-> **Fill this in for THIS repo.** Every cardmem-compatible repo MUST have a `## Project layout` section with the columns `Area | Path | Notes`. The cardmem Init flow (or the `feature` skill) populates it from the repo's actual structure — replace the example rows below.
-
 | Area | Path | Notes |
 |---|---|---|
-| _(example — replace)_ App | `src/` | Main application code |
-| _(example — replace)_ Tests | `tests/` | Test suites |
-
-Replace the example rows above with this repo's real layout before relying on cardmem skills to scope changes.
+| Server (API) | `apps/web/src/server/` | Hono API (Bun) — `index.ts` entry, `routes/`, `db/schema.ts` (Drizzle → Turso) |
+| Client (SPA) | `apps/web/src/client/` | Preact + Vite dashboard — `main.tsx`, `components/`, `styles/` (@broberg/theme tokens) |
+| Dev server | `apps/web/vite.config.ts` | Ét-ports dev: Vite serverer SPA, `@hono/vite-dev-server` router `/api/*` til Hono. Port 3019 (127.0.0.1) |
+| Feature plans | `docs/features/` | F-nummererede plan-docs (spejlet i cardmem Reader) |
+| Source plan | `docs/PLAN.md` | Plan v4 — adoption-kilden (2026-07-03) |
 
 
 ## Working with cardmem
