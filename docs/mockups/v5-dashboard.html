@@ -66,6 +66,36 @@
   .badges{margin-left:auto;display:flex;flex-direction:column;gap:2px;align-items:flex-end}
   .b{font-size:.55rem;font-weight:700;border:1px solid var(--border);border-radius:3px;padding:0 3px;color:var(--muted-foreground)}
   .ok{color:oklch(0.5 0.14 145);border-color:oklch(0.7 0.1 145)}
+  /* idé-bibliotek */
+  .ideain{border:1px dashed var(--border);border-radius:6px;padding:.5rem .6rem;font-size:.75rem;color:var(--muted-foreground);margin-bottom:.55rem}
+  .idea{display:flex;gap:.55rem;padding:.45rem 0;border-top:1px solid var(--border);align-items:flex-start}
+  .idea:first-of-type{border-top:0}
+  .idea .isrc{flex:none;font-size:.85rem;line-height:1.4}
+  .idea .h{font-size:.76rem;line-height:1.3}
+  .idea small{display:block;color:var(--muted-foreground);font-size:.66rem;margin-top:1px}
+  .idea .b{flex:none;margin-left:auto;margin-top:2px;white-space:nowrap}
+  /* review — platform-tro preview */
+  .review{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem}
+  .review h2{font-size:1.1rem}
+  .review .sub{font-size:.75rem;color:var(--muted-foreground);margin:.15rem 0 .8rem}
+  .ptabs{display:flex;gap:.35rem;margin-bottom:.8rem}
+  .ptab{padding:.3rem .85rem;border:1px solid var(--border);border-radius:999px;background:var(--background);font-size:.78rem;color:var(--muted-foreground)}
+  .ptab.active{background:var(--foreground);color:var(--background);border-color:var(--foreground)}
+  .revgrid{display:grid;grid-template-columns:minmax(0,460px) 1fr;gap:1.25rem;align-items:start}
+  .postmock{background:#fff;border:1px solid oklch(0.88 0.005 85);border-radius:8px;padding:.8rem .9rem;color:#191919;font-size:.8rem;box-shadow:0 1px 3px oklch(0 0 0/.06)}
+  .pmhead{display:flex;gap:.6rem;align-items:center;margin-bottom:.6rem}
+  .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,oklch(0.75 0.09 65),oklch(0.5 0.1 65));flex:none}
+  .pmhead b{display:block;font-size:.8rem}
+  .pmhead small{color:#666;font-size:.68rem;display:block;line-height:1.3}
+  .pmtext{line-height:1.5;margin-bottom:.5rem;white-space:pre-line}
+  .pmtags{color:#0a66c2;font-size:.78rem;margin-bottom:.6rem}
+  .pmimg{height:180px;border-radius:6px;background:linear-gradient(135deg,oklch(0.82 0.07 65),oklch(0.55 0.11 65));display:grid;place-items:center;color:#fff;font-family:var(--font-heading);font-size:1rem;margin-bottom:.6rem}
+  .pmbar{display:flex;gap:1.4rem;border-top:1px solid #ebebeb;padding-top:.5rem;color:#666;font-size:.72rem}
+  .revside .h3{font-family:var(--font-heading);font-size:.95rem;margin-bottom:.55rem}
+  .revside p{font-size:.78rem;color:var(--muted-foreground);line-height:1.5;margin-bottom:.8rem}
+  .actions{display:flex;flex-wrap:wrap;gap:.5rem}
+  .btnp,.btns{border-radius:6px;padding:.45rem .95rem;font-size:.78rem;border:1px solid var(--border);background:var(--background)}
+  .btnp{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
   /* årshjul */
   .wheel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem}
   .wheel h2{font-size:1.1rem;margin-bottom:.7rem}
@@ -132,8 +162,46 @@
       <div class="next"><span class="thumb v"></span><div><div class="h">Mød apparatet bag broberg.ai (video)</div><small>broberg.ai · 16. jul</small></div><div class="badges"><span class="b">UDKAST</span><span class="b">🎬 20 sek</span></div></div>
     </div>
     <div class="panel">
+      <h3>Idé-biblioteket</h3>
+      <div class="ideain">＋ Smid en idé ind — her, via Discord eller fra telefonen…</div>
+      <div class="idea"><span class="isrc">💬</span><div><div class="h">Kunde spurgte om AI kan læse en 20 år gammel FileMaker-løsning</div><small>i går via Discord · broberg.ai</small></div><span class="b ok">→ 24. JUL</span></div>
+      <div class="idea"><span class="isrc">📝</span><div><div class="h">Lens fangede en regression før Christian selv så den</div><small>tirsdag · cardmem.com</small></div><span class="b ok">→ 8. JUL</span></div>
+      <div class="idea"><span class="isrc">📝</span><div><div class="h">Blokhus-stien der ikke findes på Google Maps</div><small>søndag · trailmem.com</small></div><span class="b">VENTER</span></div>
+      <div class="idea"><span class="isrc">✨</span><div><div class="h">Sommer-case: sådan fik Sanne sin platform (AI-forslag fra årshjulet)</div><small>foreslået — tom for idéer til broberg.ai</small></div><span class="b">FORSLAG</span></div>
+    </div>
+    <div class="panel">
       <h3>I dag</h3>
       <p style="font-size:.8rem;color:var(--muted-foreground)">Intet at poste i dag.<br>Næste: <b style="color:var(--foreground)">6. juli — broberg.ai</b><br><br>2 stories venter på dit blik →</p>
+    </div>
+  </div>
+
+  <div class="review full">
+    <h2>Review — du ser opslaget som det faktisk kommer til at se ud</h2>
+    <p class="sub">Åbnes ved klik på en story · én fane per platform, hver med platformens eget udtryk</p>
+    <div class="ptabs"><span class="ptab active">LinkedIn</span><span class="ptab">Instagram</span><span class="ptab">Facebook</span></div>
+    <div class="revgrid">
+      <div class="postmock">
+        <div class="pmhead"><span class="avatar"></span><div><b>Christian Broberg</b><small>Founder &amp; Chief Software Architect, WebHouse<br>1 t · 🌐</small></div></div>
+        <div class="pmtext">En kunde spurgte i sidste uge: "Kan AI overhovedet forstå vores 20 år gamle FileMaker-løsning?"
+
+Kort svar: ja. Langt svar: det tog en eftermiddag at kortlægge 400 scripts og levere en migreringsplan der ellers ville have taget uger.
+
+Det er den slags opgaver vi løser hos WebHouse — moderne AI mødt med 30 års systemforståelse.</div>
+        <div class="pmtags">#AIudvikling #Legacy #WebHouse #Digitalisering</div>
+        <div class="pmimg">on-brand billede (Recraft)</div>
+        <div class="pmbar"><span>👍 Synes godt om</span><span>💬 Kommenter</span><span>↗ Del</span></div>
+      </div>
+      <div class="revside">
+        <div class="h3">Fra idé til opslag</div>
+        <p>Bygget på <b>din egen idé fra idé-biblioteket</b> ("Kunde spurgte om AI kan læse en 20 år gammel FileMaker-løsning") — generatoren foretrækker dine historier frem for at opfinde selv. Tekst i broberg.ai's voice, billede genereret on-brand. Instagram-fanen viser samme historie i kortere, mere visuel form.</p>
+        <div class="actions">
+          <button class="btnp">Godkend ✓</button>
+          <button class="btns">Regenerér tekst</button>
+          <button class="btns">Regenerér billede</button>
+          <button class="btns">📋 Kopiér til udklipsholder</button>
+          <button class="btns">Omplanlæg</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -158,6 +226,6 @@
   </div>
 
 </div>
-<footer>Contentpush v5-koncept · årshjulet føder kalenderen · kalenderen holder altid ≥5 færdige stories per brand · hver story = tekst + on-brand billede (+ video) · klik åbner review</footer>
+<footer>Contentpush v5-koncept · årshjulet føder idé-biblioteket og kalenderen · dine idéer bliver til stories før AI'en opfinder selv · altid ≥5 færdige stories per brand · hver story = tekst + on-brand billede (+ video) · review viser opslaget platform-tro før du godkender</footer>
 </body>
 </html>
