@@ -8,11 +8,17 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // mark-ready) kommer i F005.2 sammen med dashboardet.
 export const postsRoute = new Hono()
   .get("/", async (c) => {
-    const posts = await db
-      .select()
+    const rows = await db
+      .select({ post: tables.posts, brandName: tables.brandProfiles.name })
       .from(tables.posts)
+      .leftJoin(
+        tables.brandProfiles,
+        eq(tables.posts.brandId, tables.brandProfiles.id),
+      )
       .orderBy(desc(tables.posts.createdAt));
-    return c.json({ posts });
+    return c.json({
+      posts: rows.map(({ post, brandName }) => ({ ...post, brandName })),
+    });
   })
   .post("/:id/mark-posted", async (c) => {
     const id = c.req.param("id");

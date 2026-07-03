@@ -1,6 +1,7 @@
 import { render } from "preact";
 import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
+import { QueueBoard } from "./components/QueueBoard";
 import "./styles/tokens.css";
 import "./styles/app.css";
 
@@ -13,8 +14,8 @@ function App() {
         <h1>Contentpush</h1>
       </header>
       <main class="app-main" data-testid="app-main">
+        <QueueBoard activeBrandId={null} />
         <BrandSettings />
-        <p class="placeholder">Post-køen kommer i F005.</p>
       </main>
     </div>
   );
