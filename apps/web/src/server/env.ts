@@ -5,8 +5,8 @@ import { parseEnv } from "@broberg/config";
 // Én kilde for al env (F001.4). Læs ALDRIG process.env direkte i app-kode —
 // importér `env` herfra. Alle secrets er optional = ship-dark: manglende
 // værdi degraderer (lokal DB, notify springes over), crasher aldrig boot.
-// OBS: projekt-præfiksede DB-vars — generisk TURSO_DATABASE_URL lækker fra
-// shell-profilen (buddy-cloud-hændelsen 2026-07-03), se db/index.ts.
+// OBS: projekt-præfiksede DB-vars — generisk TURSO_DATABASE_URL lækkede fra
+// det arvede miljø (tmux-global; buddy-cloud-hændelsen 2026-07-03), se db/index.ts.
 export const env = parseEnv(
   z.object({
     PORT: z.coerce.number().int().positive().default(3019),

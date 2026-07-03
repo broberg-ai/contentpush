@@ -3,9 +3,10 @@ import { createClient } from "@broberg/db-sdk";
 import { env } from "../env";
 import * as schema from "./schema";
 
-// PROJEKT-PRÆFIKSEDE vars med vilje: den generiske TURSO_DATABASE_URL lækker
-// fra shell-profilen og pegede på buddy-clouds DB (opdaget 2026-07-03) — et
-// forkert-DB-foot-gun. Contentpush læser KUN sine egne vars (via env.ts).
+// PROJEKT-PRÆFIKSEDE vars med vilje: den generiske TURSO_DATABASE_URL lækkede
+// fra det arvede miljø (tmux-global) og pegede på buddy-clouds DB (opdaget
+// 2026-07-03, siden scrubbet af buddy) — et forkert-DB-foot-gun. Contentpush
+// læser KUN sine egne vars (via env.ts).
 // Ship-dark: uden CONTENTPUSH_TURSO_URL kører vi på en lokal libSQL-fil (dev).
 const url = env.CONTENTPUSH_TURSO_URL ?? "file:./.data/contentpush.db";
 
