@@ -21,6 +21,30 @@ export function PostDetail({
 }) {
   const [state, setState] = useState<ActionState>({ running: null, message: null, error: null });
 
+  async function downloadPackage() {
+    setState({ running: "download", message: null, error: null });
+    try {
+      const res = await fetch(`/api/posts/${post.id}/package`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] ??
+        "contentpush-pakke.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+      setState({ running: null, message: "Pakken er downloadet", error: null });
+    } catch (err) {
+      setState({
+        running: null,
+        message: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   async function runAction(action: "approve" | "regenerate" | "mark-posted", doneMessage: string) {
     setState({ running: action, message: null, error: null });
     try {
@@ -92,6 +116,17 @@ export function PostDetail({
             onClick={() => runAction("mark-posted", "Markeret som postet — næste opslag er planlagt")}
           >
             {state.running === "mark-posted" ? "Markerer…" : "Markér som postet"}
+          </button>
+        )}
+        {(post.status === "ready" || post.status === "posted") && (
+          <button
+            type="button"
+            class="btn-secondary"
+            data-testid="post-download-button"
+            disabled={state.running !== null}
+            onClick={downloadPackage}
+          >
+            {state.running === "download" ? "Pakker…" : "Download pakke"}
           </button>
         )}
         {state.message && (
