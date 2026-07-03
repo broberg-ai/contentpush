@@ -1,22 +1,41 @@
 import { render } from "preact";
+import { useState } from "preact/hooks";
 import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
-import { QueueBoard } from "./components/QueueBoard";
+import { QueueBoard, type Post } from "./components/QueueBoard";
+import { PostDetail } from "./components/PostDetail";
 import "./styles/tokens.css";
 import "./styles/app.css";
 
 initTheme({ defaultTheme: "light-warm" });
 
 function App() {
+  const [openPost, setOpenPost] = useState<Post | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   return (
     <div class="app-shell" data-testid="app-root">
       <header class="app-header" data-testid="app-header">
         <h1>Contentpush</h1>
       </header>
       <main class="app-main" data-testid="app-main">
-        <QueueBoard activeBrandId={null} />
+        <QueueBoard
+          activeBrandId={null}
+          refreshKey={refreshKey}
+          onOpen={setOpenPost}
+        />
         <BrandSettings />
       </main>
+      {openPost && (
+        <PostDetail
+          post={openPost}
+          onClose={() => setOpenPost(null)}
+          onChanged={(updated) => {
+            setOpenPost(updated);
+            setRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
