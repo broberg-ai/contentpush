@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import preact from "@preact/preset-vite";
 import devServer from "@hono/vite-dev-server";
+import { env } from "./src/server/env";
 
 export default defineConfig({
   plugins: [
@@ -13,7 +14,7 @@ export default defineConfig({
   ],
   server: {
     host: "127.0.0.1",
-    port: Number(process.env.PORT) || 3019,
+    port: env.PORT,
     strictPort: true,
   },
 });

@@ -1,10 +1,10 @@
 import { defineConfig } from "drizzle-kit";
+import { env } from "./src/server/env";
 
-// Samme kilde som src/server/db/index.ts: CONTENTPUSH_TURSO_URL i cloud,
-// lokal libSQL-fil som dev-fallback (projekt-præfikset — se db/index.ts:
-// den generiske TURSO_DATABASE_URL lækker fra shell-profilen og fik turso-
-// dialekten til at "no-op'e" stille mod en fremmed, uautoriseret remote).
-const tursoUrl = process.env.CONTENTPUSH_TURSO_URL;
+// Samme kilde som appen (env.ts — projekt-præfiksede vars; den generiske
+// TURSO_DATABASE_URL lækker fra shell-profilen og fik turso-dialekten til at
+// "no-op'e" stille mod en fremmed, uautoriseret remote — se db/index.ts).
+const tursoUrl = env.CONTENTPUSH_TURSO_URL;
 
 export default defineConfig({
   schema: "./src/server/db/schema.ts",
@@ -12,7 +12,7 @@ export default defineConfig({
   ...(tursoUrl
     ? {
         dialect: "turso" as const,
-        dbCredentials: { url: tursoUrl, authToken: process.env.CONTENTPUSH_TURSO_TOKEN },
+        dbCredentials: { url: tursoUrl, authToken: env.CONTENTPUSH_TURSO_TOKEN },
       }
     : {
         dialect: "sqlite" as const,

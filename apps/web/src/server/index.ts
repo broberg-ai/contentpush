@@ -1,4 +1,9 @@
 import { Hono } from "hono";
+import { darkSecrets } from "./env";
+
+for (const [name, consequence] of darkSecrets()) {
+  console.warn(`[ship-dark] ${name} ikke sat — ${consequence}`);
+}
 
 const app = new Hono();
 

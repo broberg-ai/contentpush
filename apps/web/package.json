@@ -10,11 +10,14 @@
     "db:migrate": "bun run scripts/migrate.ts"
   },
   "dependencies": {
+    "@broberg/config": "^0.2.0",
     "@broberg/db-sdk": "^0.1.0",
     "@broberg/theme": "^0.3.1",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.27",
-    "preact": "^10.29.4"
+    "preact": "^10.29.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.26.0",
