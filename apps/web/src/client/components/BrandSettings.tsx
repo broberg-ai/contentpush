@@ -74,6 +74,7 @@ export function BrandSettings() {
       {selectedId && (
         <form
           class="brand-form"
+          data-testid="brand-form"
           onSubmit={(e) => {
             e.preventDefault();
             save();
