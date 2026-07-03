@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contentpush v5 — detaljer: idé · story · årshjul-event</title>
+<style>
+  :root{
+    --background:oklch(0.98 0.01 85);--foreground:oklch(0.22 0.025 65);
+    --card:oklch(0.96 0.012 80);--border:oklch(0.84 0.02 75);
+    --muted:oklch(0.93 0.012 80);--muted-foreground:oklch(0.52 0.02 65);
+    --primary:oklch(0.55 0.11 65);--primary-foreground:oklch(0.985 0.01 85);
+    --radius:0.625rem;
+    --font-heading:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --brand-broberg:oklch(0.55 0.11 65);--brand-cardmem:oklch(0.55 0.10 145);--brand-trail:oklch(0.52 0.10 240);
+    --ok:oklch(0.5 0.14 145);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--background);color:var(--foreground);font-family:var(--font-body);font-size:14px;line-height:1.45}
+  h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;letter-spacing:-.01em}
+  .top{display:flex;align-items:center;gap:1rem;padding:.9rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border)}
+  .top h1{font-size:1.2rem}
+  .top small{color:var(--muted-foreground)}
+  .wrap{max-width:1000px;margin:0 auto;padding:1.5rem}
+  .section{margin-bottom:2.5rem}
+  .section>h2{font-size:1.25rem}
+  .section>.sub{color:var(--muted-foreground);font-size:.82rem;margin:.25rem 0 1rem;max-width:70ch}
+  /* det udfoldede panel (modal-look) */
+  .sheet{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 32px oklch(0 0 0/.08);overflow:hidden}
+  .sheethead{display:flex;align-items:flex-start;gap:.8rem;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+  .sheethead h3{font-size:1.15rem;line-height:1.3}
+  .sheethead .meta{font-size:.76rem;color:var(--muted-foreground);margin-top:.2rem}
+  .x{margin-left:auto;color:var(--muted-foreground);font-size:1rem;border:1px solid var(--border);border-radius:6px;width:28px;height:28px;display:grid;place-items:center;flex:none}
+  .body{padding:1.1rem 1.25rem;display:grid;gap:1.1rem}
+  .cols{display:grid;grid-template-columns:1fr 300px;gap:1.25rem;align-items:start}
+  .block h4{font-size:.9rem;margin-bottom:.45rem}
+  .block .note{font-size:.72rem;color:var(--muted-foreground);margin-top:.35rem}
+  .chip{display:inline-block;font-size:.62rem;font-weight:700;border:1px solid var(--border);border-radius:3px;padding:.05rem .3rem;color:var(--muted-foreground);vertical-align:middle}
+  .chip.ok{color:var(--ok);border-color:oklch(0.7 0.1 145)}
+  .chip.warn{color:oklch(0.55 0.13 65);border-color:oklch(0.75 0.08 65)}
+  .brand{display:inline-flex;align-items:center;gap:.3rem;font-size:.74rem}
+  .brand i{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .quote{background:var(--background);border:1px solid var(--border);border-left:3px solid var(--brand-trail);border-radius:6px;padding:.7rem .85rem;font-size:.85rem;line-height:1.55}
+  .quote small{display:block;color:var(--muted-foreground);font-size:.68rem;margin-top:.4rem}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:.3rem .8rem;font-size:.78rem}
+  .kv dt{color:var(--muted-foreground)}
+  .angle{display:flex;gap:.6rem;padding:.5rem 0;border-top:1px solid var(--border);font-size:.78rem;align-items:baseline}
+  .angle:first-of-type{border-top:0}
+  .angle b{flex:none;width:74px;font-size:.72rem}
+  /* tidslinje */
+  .tl{display:flex;flex-direction:column;gap:0;font-size:.76rem}
+  .tl .step{display:flex;gap:.6rem}
+  .tl .rail{display:flex;flex-direction:column;align-items:center}
+  .tl .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none;margin-top:3px}
+  .tl .dot.open{background:var(--background);border:2px solid var(--border)}
+  .tl .line{width:2px;flex:1;background:var(--border);min-height:14px}
+  .tl .step:last-child .line{display:none}
+  .tl p{padding-bottom:.7rem}
+  .tl small{display:block;color:var(--muted-foreground);font-size:.68rem}
+  /* handlinger */
+  .actions{display:flex;flex-wrap:wrap;gap:.5rem;padding:1rem 1.25rem;border-top:1px solid var(--border);background:var(--background)}
+  .btnp,.btns,.btnd{border-radius:6px;padding:.45rem .95rem;font-size:.78rem;border:1px solid var(--border);background:var(--card)}
+  .btnp{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+  .btnd{color:oklch(0.5 0.14 25);margin-left:auto}
+  /* story: platform-preview */
+  .ptabs{display:flex;gap:.35rem;margin-bottom:.7rem}
+  .ptab{padding:.28rem .8rem;border:1px solid var(--border);border-radius:999px;background:var(--background);font-size:.76rem;color:var(--muted-foreground)}
+  .ptab.active{background:var(--foreground);color:var(--background);border-color:var(--foreground)}
+  .postmock{background:#fff;border:1px solid oklch(0.88 0.005 85);border-radius:8px;padding:.8rem .9rem;color:#191919;font-size:.8rem;box-shadow:0 1px 3px oklch(0 0 0/.06)}
+  .pmhead{display:flex;gap:.6rem;align-items:center;margin-bottom:.6rem}
+  .avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,oklch(0.78 0.08 145),oklch(0.5 0.1 145));flex:none}
+  .pmhead b{display:block;font-size:.8rem}
+  .pmhead small{color:#666;font-size:.68rem;display:block;line-height:1.3}
+  .pmtext{line-height:1.5;margin-bottom:.5rem;white-space:pre-line}
+  .pmtags{color:#0a66c2;font-size:.78rem;margin-bottom:.6rem}
+  .pmvideo{height:200px;border-radius:6px;background:linear-gradient(135deg,oklch(0.72 0.08 145),oklch(0.42 0.1 145));display:grid;place-items:center;color:#fff;position:relative;margin-bottom:.6rem}
+  .pmvideo .play{width:46px;height:46px;border-radius:50%;background:oklch(1 0 0/.9);color:oklch(0.4 0.1 145);display:grid;place-items:center;font-size:1.1rem}
+  .pmvideo .dur{position:absolute;right:.6rem;bottom:.5rem;background:oklch(0 0 0/.65);color:#fff;font-size:.66rem;padding:.1rem .4rem;border-radius:4px}
+  .pmbar{display:flex;gap:1.4rem;border-top:1px solid #ebebeb;padding-top:.5rem;color:#666;font-size:.72rem}
+  .variant{display:flex;gap:.5rem;margin-top:.6rem}
+  .variant .v{flex:1;border:1px solid var(--border);border-radius:6px;padding:.4rem .55rem;font-size:.7rem;background:var(--background)}
+  .variant .v b{display:block;font-size:.68rem}
+  .variant .v small{color:var(--muted-foreground);font-size:.64rem}
+  .cost{font-size:.72rem;color:var(--muted-foreground)}
+  .cost b{color:var(--foreground)}
+  /* årshjul-event */
+  .cover{display:flex;flex-direction:column;gap:.45rem}
+  .covrow{display:flex;gap:.6rem;align-items:center;font-size:.78rem;padding:.45rem .6rem;border:1px solid var(--border);border-radius:6px;background:var(--background)}
+  .covrow .thumb{width:30px;height:30px;border-radius:5px;flex:none;background:linear-gradient(135deg,oklch(0.75 0.09 65),oklch(0.55 0.11 65))}
+  .covrow .thumb.cm{background:linear-gradient(135deg,oklch(0.78 0.08 145),oklch(0.5 0.1 145))}
+  .covrow .thumb.tr{background:linear-gradient(135deg,oklch(0.78 0.07 240),oklch(0.5 0.1 240))}
+  .covrow .thumb.ghost{background:var(--muted);border:1px dashed var(--border)}
+  .covrow small{display:block;color:var(--muted-foreground);font-size:.66rem}
+  .covrow .chip{margin-left:auto}
+  .minical{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);text-align:center;margin-bottom:.5rem}
+  .minical .m{padding:.3rem 0;border-radius:4px;background:var(--background);border:1px solid var(--border)}
+  .minical .m.on{background:oklch(0.45 0.12 25);color:#fff;border-color:transparent}
+  .minical .m.gen{outline:2px dashed oklch(0.55 0.13 65);outline-offset:-2px}
+  .legend{font-size:.68rem;color:var(--muted-foreground)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin:0 .25rem 0 .6rem}
+  footer{max-width:1000px;margin:0 auto;padding:0 1.5rem 2rem;color:var(--muted-foreground);font-size:.72rem}
+  textarea.tone{width:100%;border:1px solid var(--border);border-radius:6px;background:var(--background);padding:.55rem .7rem;font-size:.78rem;font-family:var(--font-body);color:var(--foreground);line-height:1.5;resize:none}
+</style>
+</head>
+<body>
+
+<div class="top"><h1>Contentpush</h1><small>v5-koncept — de tre udfoldede visninger: hvad du ser når du klikker på en idé, en story og et årshjul-event</small></div>
+
+<div class="wrap">
+
+  <!-- ============ 1. IDÉ FOLDET UD ============ -->
+  <div class="section">
+    <h2>1 · En idé foldet ud</h2>
+    <p class="sub">Klik på en idé i idé-biblioteket. Din rå tekst er hellig og står øverst uredigeret. AI'en har allerede beriget den: valgt brand, foreslået vinkler per platform, fundet en ledig dato der matcher årshjulet. Du beslutter — den producerer.</p>
+
+    <div class="sheet">
+      <div class="sheethead">
+        <div>
+          <h3>Blokhus-stien der ikke findes på Google Maps</h3>
+          <div class="meta">💬 Modtaget via Discord · søndag 28. juni 21:14 · <span class="brand"><i style="background:var(--brand-trail)"></i>trailmem.com</span> <span class="chip">AI-VALGT · SKIFT?</span></div>
+        </div>
+        <span class="x">✕</span>
+      </div>
+      <div class="body">
+        <div class="block">
+          <h4>Din idé, som du skrev den</h4>
+          <div class="quote">Gik en tur ved Blokhus i aftes og fandt en sti ned til stranden som slet ikke findes på Google Maps. Den slags skjulte ruter er jo præcis dét Trail er bygget til. Har billeder fra turen på telefonen.
+            <small>Ordret som modtaget — bliver aldrig omskrevet. Generatoren bruger den som råstof.</small>
+          </div>
+        </div>
+        <div class="cols">
+          <div class="block">
+            <h4>AI-berigelse — foreslåede vinkler</h4>
+            <div class="angle"><b>LinkedIn</b><span>Produkthistorie: hvorfor lokalkendskab slår Google Maps — og hvordan Trail samler de skjulte ruter.</span></div>
+            <div class="angle"><b>Instagram</b><span>Visuelt: dit eget foto fra stien + stemning ("ruten der ikke findes på kortet"). Bruger billederne fra din telefon hvis du uploader dem.</span></div>
+            <div class="angle"><b>Facebook</b><span>Community: "Kender du en sti der ikke findes på Google Maps? Del den i kommentarerne."</span></div>
+            <p class="note">Vinklerne er forslag — story-generatoren følger dem, men du kan rette eller slette en platform før produktion.</p>
+          </div>
+          <div class="block">
+            <h4>Planlægning</h4>
+            <dl class="kv">
+              <dt>Foreslået dato</dt><dd><b>17. juli</b> — ledigt hul i kalenderen</dd>
+              <dt>Matcher serie</dt><dd>Ugentlig produkt-indsigt <span class="chip">ÅRSHJUL</span></dd>
+              <dt>Medie</dt><dd>🖼 dit foto (upload) eller on-brand AI-billede</dd>
+            </dl>
+            <h4 style="margin-top:.9rem">Status</h4>
+            <div class="tl">
+              <div class="step"><span class="rail"><span class="dot"></span><span class="line"></span></span><p>Modtaget fra Discord<small>søn 28. jun 21:14</small></p></div>
+              <div class="step"><span class="rail"><span class="dot"></span><span class="line"></span></span><p>Beriget af AI — brand, vinkler, dato<small>søn 28. jun 21:15</small></p></div>
+              <div class="step"><span class="rail"><span class="dot open"></span></span><p><b>Venter på dit ja</b><small>bliver til en story når du planlægger den</small></p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btnp">Planlæg 17. juli — lav story ✓</button>
+        <button class="btns">Lav story nu (spring datoen over)</button>
+        <button class="btns">Upload dine fotos</button>
+        <button class="btns">Skift brand</button>
+        <button class="btnd">Arkivér idé</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2. STORY FOLDET UD ============ -->
+  <div class="section">
+    <h2>2 · En story foldet ud</h2>
+    <p class="sub">Klik på en story i kalenderen eller "Næste 5". Alt er færdigproduceret: platform-tro preview per fane, medie med varianter, sporbar oprindelse (hvilken idé og hvilket årshjul-event den kom fra), pris og historik. Godkend, justér eller send retur.</p>
+
+    <div class="sheet">
+      <div class="sheethead">
+        <div>
+          <h3>Lens verificerer dit UI før hvert release</h3>
+          <div class="meta"><span class="brand"><i style="background:var(--brand-cardmem)"></i>cardmem.com</span> · planlagt <b>8. juli 09:00</b> · <span class="chip ok">KLAR</span> · 🎬 video 15 sek + fallback-billede</div>
+        </div>
+        <span class="x">✕</span>
+      </div>
+      <div class="body">
+        <div class="cols">
+          <div class="block">
+            <div class="ptabs"><span class="ptab active">LinkedIn</span><span class="ptab">Instagram</span><span class="ptab">Facebook</span></div>
+            <div class="postmock">
+              <div class="pmhead"><span class="avatar"></span><div><b>Christian Broberg</b><small>Founder &amp; Chief Software Architect, WebHouse<br>Nu · 🌐</small></div></div>
+              <div class="pmtext">I tirsdags fangede Cardmem Lens en visuel regression i vores dashboard — før noget menneske havde set den.
+
+Lens tager screenshots af hvert UI-element før release og sammenligner pixel for pixel. Ændrer noget sig utilsigtet, blokeres releasen.
+
+AI der bygger software skal også kunne SE hvad den har bygget. Det kan den nu.</div>
+              <div class="pmtags">#Cardmem #AIudvikling #QA #DevTools</div>
+              <div class="pmvideo"><span class="play">▶</span><span class="dur">0:15</span>video: Lens fanger regressionen (skærmoptagelse + speak)</div>
+              <div class="pmbar"><span>👍 Synes godt om</span><span>💬 Kommenter</span><span>↗ Del</span></div>
+            </div>
+            <div class="variant">
+              <div class="v"><b>🎬 Video 15 sek</b><small>16:9 til LinkedIn · 9:16-udgave klippet til IG Reels</small></div>
+              <div class="v"><b>🖼 Fallback-billede</b><small>on-brand still (Recraft) hvis du dropper videoen</small></div>
+              <div class="v" style="border-style:dashed"><b>↻ Regenerér medie</b><small>nyt forslag, gammelt gemmes</small></div>
+            </div>
+          </div>
+          <div class="block">
+            <h4>Oprindelse — fuld sporbarhed</h4>
+            <dl class="kv">
+              <dt>Fra din idé</dt><dd>"Lens fangede en regression før Christian selv så den" <span class="chip">IDÉ-BIBLIOTEK</span></dd>
+              <dt>Årshjul</dt><dd>Cardmem launch-serie (mar–maj, forlænget)</dd>
+              <dt>Voice</dt><dd>cardmem.com brand-profil (AutoDoc-analyse 1. jul)</dd>
+            </dl>
+            <h4 style="margin-top:.9rem">Historik</h4>
+            <div class="tl">
+              <div class="step"><span class="rail"><span class="dot"></span><span class="line"></span></span><p>Genereret af nat-tick<small>ons 24. jun 06:00</small></p></div>
+              <div class="step"><span class="rail"><span class="dot"></span><span class="line"></span></span><p>Tekst regenereret 1× — "mere teknisk, mindre salg"<small>tors 25. jun</small></p></div>
+              <div class="step"><span class="rail"><span class="dot"></span><span class="line"></span></span><p>Godkendt af dig<small>fre 26. jun</small></p></div>
+              <div class="step"><span class="rail"><span class="dot open"></span></span><p><b>Poster 8. juli</b><small>du får Discord-besked kl. 09:00 med direkte link</small></p></div>
+            </div>
+            <h4 style="margin-top:.9rem">Pris</h4>
+            <p class="cost">Denne story kostede <b>$0,14</b> at producere<br>tekst $0,002 · billede $0,035 · video $0,10 — logget i Upmetrics</p>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btnp">📋 Kopiér LinkedIn-tekst</button>
+        <button class="btns">📋 Instagram</button>
+        <button class="btns">📋 Facebook</button>
+        <button class="btns">⬇ Download pakke (zip)</button>
+        <button class="btns">Regenerér tekst</button>
+        <button class="btns">Omplanlæg</button>
+        <button class="btnd">Tilbage til udkast</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 3. ÅRSHJUL-EVENT FOLDET UD ============ -->
+  <div class="section">
+    <h2>3 · Et årshjul-event foldet ud</h2>
+    <p class="sub">Klik på et event i årshjulet — her Black Friday. Et event er en produktions-ordre: tema + periode + brands + kadence + tone-instruks. Apparatet regner selv baglæns: stories genereres to uger før og lander i kalenderen. Dæknings-listen viser præcis hvad der er produceret, og hvad der kommer.</p>
+
+    <div class="sheet">
+      <div class="sheethead">
+        <div>
+          <h3>Black Friday 2026</h3>
+          <div class="meta">Kampagne · 10.–29. november · alle 3 brands · LinkedIn + Instagram + Facebook · <span class="chip warn">GENERERES FRA 27. OKT</span></div>
+        </div>
+        <span class="x">✕</span>
+      </div>
+      <div class="body">
+        <div class="block">
+          <div class="minical">
+            <span class="m">jan</span><span class="m">feb</span><span class="m">mar</span><span class="m">apr</span><span class="m">maj</span><span class="m">jun</span><span class="m">jul</span><span class="m">aug</span><span class="m">sep</span><span class="m gen">okt</span><span class="m on">nov</span><span class="m">dec</span>
+          </div>
+          <p class="legend"><i style="background:oklch(0.45 0.12 25)"></i>kampagne-periode <i style="outline:2px dashed oklch(0.55 0.13 65);outline-offset:-2px;background:var(--background)"></i>produktions-vindue (2 uger før — pipelinen fylder selv op)</p>
+        </div>
+        <div class="cols">
+          <div class="block">
+            <h4>Tema &amp; tone-instruks til generatoren</h4>
+            <textarea class="tone" rows="4" readonly>Konkret værdi, ingen discount-hype. Cardmem Pro-intro til nye solo-buildere; Trail-vinterklargøring ("planlæg forårets ruter nu"); broberg.ai: årsafslutnings-cases. Max 1 pristilbud per brand — resten er substans.</textarea>
+            <p class="note">Din instruks vinder altid over AI'ens egne vinkler. Er idé-biblioteket tomt for et brand i perioden, henter generatoren vinkler HERFRA i stedet for at opfinde frit.</p>
+            <h4 style="margin-top:.9rem">Kadence</h4>
+            <dl class="kv">
+              <dt>Pr. brand</dt><dd>2 stories i perioden (6 i alt)</dd>
+              <dt>Fordeling</dt><dd>optakt uge 46 · selve ugen 47</dd>
+              <dt>Kolliderer med</dt><dd>14-dages brand-posts — <b>pauses automatisk</b> i kampagne-ugen så du ikke poster dobbelt</dd>
+            </dl>
+          </div>
+          <div class="block">
+            <h4>Dækning — 6 stories i denne kampagne</h4>
+            <div class="cover">
+              <div class="covrow"><span class="thumb cm"></span><div>Cardmem Pro: byg din første feature i aften<small>cardmem.com · 12. nov</small></div><span class="chip ok">GENERERET</span></div>
+              <div class="covrow"><span class="thumb cm"></span><div>Black Friday: Cardmem Pro-intro<small>cardmem.com · 27. nov</small></div><span class="chip ok">GENERERET</span></div>
+              <div class="covrow"><span class="thumb ghost"></span><div>Trail: planlæg forårets ruter nu<small>trailmem.com · 13. nov</small></div><span class="chip">VENTER PÅ VINDUE</span></div>
+              <div class="covrow"><span class="thumb ghost"></span><div>Trail: vinter-udstyrsguide<small>trailmem.com · 26. nov</small></div><span class="chip">VENTER PÅ VINDUE</span></div>
+              <div class="covrow"><span class="thumb ghost"></span><div>broberg.ai: årets AI-cases<small>broberg.ai · 17. nov</small></div><span class="chip">VENTER PÅ VINDUE</span></div>
+              <div class="covrow"><span class="thumb ghost"></span><div>broberg.ai: det byggede vi i 2026<small>broberg.ai · 28. nov</small></div><span class="chip">VENTER PÅ VINDUE</span></div>
+            </div>
+            <p class="note">2 af 6 er allerede produceret (du bad om et tidligt kig). Resten genereres automatisk 27. okt og dukker op i kalenderen som udkast til review.</p>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btnp">Gem ændringer</button>
+        <button class="btns">Generér alle stories nu</button>
+        <button class="btns">Flyt periode</button>
+        <button class="btns">Tilføj/fjern brands</button>
+        <button class="btnd">Spring over i år</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<footer>Contentpush v5-koncept · detalje-visninger — idéen er dit råstof (uredigeret), storyen er det færdige produkt (platform-tro, sporbar, prissat), årshjul-eventet er produktions-ordren (tema + kadence + automatisk vindue). Alle tre deler samme godkend/regenerér-mønster.</footer>
+</body>
+</html>
