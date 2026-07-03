@@ -5,6 +5,14 @@
 ## Motivation
 Plan v4 antog ét brand (WebHouse, singleton `settings`). Christian har afklaret at Contentpush skal drive social-posts for hele porteføljen — hvert site/produkt med sin egen tone, sine egne platforme og sin egen visuelle stil. Uden brand-profiler som førsteklasses begreb ville alt (generering, cron, notify, download, billedstil) skulle re-arkitekteres senere. Derfor: brand_profiles i skemaet fra dag ét (F001.3 opdateret), og denne epic bygger fladen ovenpå.
 
+## Første brands (Christian 2026-07-03)
+De første tre brand-profiler — og valideringsgrundlaget for F009/F010:
+1. **broberg.ai**
+2. **cardmem.com**
+3. **trailmem.com**
+
+(IKKE WebHouse først.)
+
 ## Datamodel (erstatter Plan v4 §4's singleton-settings-antagelse)
 ```
 brand_profiles {
