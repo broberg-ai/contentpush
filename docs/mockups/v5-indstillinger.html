@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contentpush v5 — indstillinger: modeller & produktion</title>
+<style>
+  :root{
+    --background:oklch(0.98 0.01 85);--foreground:oklch(0.22 0.025 65);
+    --card:oklch(0.96 0.012 80);--border:oklch(0.84 0.02 75);
+    --muted:oklch(0.93 0.012 80);--muted-foreground:oklch(0.52 0.02 65);
+    --primary:oklch(0.55 0.11 65);--primary-foreground:oklch(0.985 0.01 85);
+    --radius:0.625rem;
+    --font-heading:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --ok:oklch(0.5 0.14 145);--eu:oklch(0.45 0.1 240);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--background);color:var(--foreground);font-family:var(--font-body);font-size:14px;line-height:1.45}
+  h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;letter-spacing:-.01em}
+  .top{display:flex;align-items:center;gap:1rem;padding:.9rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border)}
+  .top h1{font-size:1.2rem}
+  .top .crumb{color:var(--muted-foreground);font-size:.8rem}
+  .wrap{max-width:1100px;margin:0 auto;padding:1.5rem;display:grid;grid-template-columns:1fr 300px;gap:1.5rem;align-items:start}
+  .intro{grid-column:1/-1;color:var(--muted-foreground);font-size:.82rem;max-width:75ch}
+  .group{margin-bottom:1.5rem}
+  .group>h2{font-size:1.05rem;margin-bottom:.6rem}
+  .row{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;display:grid;grid-template-columns:1fr 250px;gap:1rem;align-items:center;margin-bottom:.5rem}
+  .row .what b{font-size:.86rem}
+  .row .what small{display:block;color:var(--muted-foreground);font-size:.72rem;margin-top:.15rem;line-height:1.4}
+  .row .what .fb{display:block;font-size:.66rem;color:var(--muted-foreground);margin-top:.3rem}
+  .row .what .fb b{font-size:.66rem;color:var(--muted-foreground)}
+  /* custom select (aldrig native <select>) */
+  .sel{border:1px solid var(--border);border-radius:6px;background:var(--background);padding:.5rem .7rem;font-size:.78rem;display:flex;align-items:center;gap:.5rem;position:relative}
+  .sel .arrow{margin-left:auto;color:var(--muted-foreground);font-size:.7rem}
+  .badge{font-size:.56rem;font-weight:700;border:1px solid var(--border);border-radius:3px;padding:.05rem .28rem;color:var(--muted-foreground);flex:none}
+  .badge.eu{color:var(--eu);border-color:oklch(0.7 0.08 240)}
+  .badge.ok{color:var(--ok);border-color:oklch(0.7 0.1 145)}
+  .badge.warn{color:oklch(0.55 0.13 65);border-color:oklch(0.75 0.08 65)}
+  .price{font-size:.66rem;color:var(--muted-foreground);white-space:nowrap}
+  /* udfoldet dropdown (vist åben på Billeder-rækken) */
+  .open{position:relative}
+  .menu{border:1px solid var(--border);border-radius:8px;background:var(--card);box-shadow:0 10px 30px oklch(0 0 0/.14);margin-top:.4rem;overflow:hidden}
+  .opt{display:flex;align-items:center;gap:.5rem;padding:.55rem .7rem;font-size:.76rem;border-top:1px solid var(--border)}
+  .opt:first-child{border-top:0}
+  .opt.selected{background:var(--muted)}
+  .opt .check{color:var(--ok);font-weight:700;width:14px;flex:none}
+  .opt .price{margin-left:auto}
+  .opt.disabled{opacity:.45}
+  .opt.disabled .why{font-size:.6rem;color:oklch(0.5 0.12 25)}
+  /* rail */
+  .rail{display:flex;flex-direction:column;gap:1rem;position:sticky;top:1rem}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem}
+  .panel h3{font-size:.95rem;margin-bottom:.55rem}
+  .panel p{font-size:.75rem;color:var(--muted-foreground);line-height:1.5;margin-bottom:.5rem}
+  .panel p b{color:var(--foreground)}
+  .bar{height:7px;border-radius:4px;background:var(--muted);overflow:hidden;margin:.35rem 0}
+  .bar i{display:block;height:100%;width:25%;background:var(--primary);border-radius:4px}
+  .polrow{display:flex;gap:.5rem;font-size:.74rem;padding:.4rem 0;border-top:1px solid var(--border);line-height:1.45}
+  .polrow:first-of-type{border-top:0}
+  .polrow .ic{flex:none}
+  .actions{grid-column:1/-1;display:flex;gap:.5rem}
+  .btnp,.btns{border-radius:6px;padding:.5rem 1.1rem;font-size:.8rem;border:1px solid var(--border);background:var(--card)}
+  .btnp{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+  .saved{align-self:center;font-size:.75rem;color:var(--ok)}
+  footer{max-width:1100px;margin:0 auto;padding:0 1.5rem 2rem;color:var(--muted-foreground);font-size:.72rem}
+</style>
+</head>
+<body>
+
+<div class="top"><h1>Contentpush</h1><span class="crumb">Indstillinger → Modeller &amp; produktion</span></div>
+
+<div class="wrap">
+  <p class="intro">Ét sted der styrer hvilken AI-model hvert produktions-område bruger — på tværs af alle brands. Alt går gennem @broberg/ai-sdk, så et skift her er ét klik, ikke en kodeændring. Hver model viser pris pr. enhed og om den kører i EU (GDPR). Utilgængelige modeller nedtones automatisk og falder tilbage til reserven.</p>
+
+  <div>
+    <div class="group">
+      <h2>Visuelt indhold</h2>
+
+      <div class="row">
+        <div class="what"><b>Billeder</b><small>Brand-fotos og stemningsbilleder til stories — genereres i brandets trænede stil (LoRA).</small><span class="fb">Reserve: <b>Recraft v4.1 raster</b> — bruges automatisk hvis primær er nede</span></div>
+        <div class="open">
+          <div class="sel">FLUX + brand-LoRA <span class="badge eu">EU</span><span class="price">$0,035/billede</span><span class="arrow">▲</span></div>
+          <div class="menu">
+            <div class="opt selected"><span class="check">✓</span>FLUX + brand-LoRA <span class="badge eu">EU</span><span class="price">$0,035</span></div>
+            <div class="opt"><span class="check"></span>Recraft v4.1 raster <span class="price">$0,035</span></div>
+            <div class="opt"><span class="check"></span>Gemini 2.5 Flash Image <span class="price">$0,039</span></div>
+            <div class="opt"><span class="check"></span>gpt-image-1 <span class="price">~$0,04</span></div>
+            <div class="opt disabled"><span class="check"></span>Fable Image <span class="why">suspenderet — kan ikke vælges</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Logoer &amp; vektorgrafik</b><small>Rigtige SVG'er der kan skaleres frit — logoer, ikoner, grafiske elementer.</small><span class="fb">Reserve: ingen (eneste model med ægte SVG-output)</span></div>
+        <div class="sel">Recraft v4.1 vector (SVG) <span class="price">$0,08/logo</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Illustrationer</b><small>Flade, grafiske illustrationer i brandets farvepalette — fx neuron-grafen til Trail.</small><span class="fb">Reserve: FLUX + brand-LoRA</span></div>
+        <div class="sel">Recraft v4.1 raster <span class="price">$0,035/stk</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Portrætter — dig i billedet</b><small>Billeder hvor du selv optræder. GDPR-låst: kører KUN på EU-modeller, kræver dit skriftlige samtykke.</small><span class="fb">Samtykke: <b>givet 3. juli 2026</b> · kan trækkes tilbage her</span></div>
+        <div class="sel">BFL portrait <span class="badge eu">EU · Paris</span><span class="badge ok">SAMTYKKE ✓</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Video — korte klip</b><small>10–20 sek klip til stories (16:9 + 9:16 til Reels). Endelig model afgøres af bølge 3-spiken.</small><span class="fb">Reserve: fallback-billede (storyen skifter selv til stillbillede)</span></div>
+        <div class="sel">ai.video — tier "video" <span class="badge warn">BØLGE 3</span><span class="price">~$0,10/15 sek</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Voiceover til video</b><small>Speak på videoklip. Findes ikke i ai-sdk endnu — gap meldes til components når bølge 3 starter.</small></div>
+        <div class="sel" style="opacity:.55">Ikke tilgængelig endnu <span class="badge">KOMMER</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Undertekster på video</b><small>Auto-transskription af speak → indbrændte captions (de fleste ser SoMe-video uden lyd).</small></div>
+        <div class="sel">ai.transcribe — Whisper <span class="price">$0,006/min</span><span class="arrow">▾</span></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Tekst &amp; sprog</h2>
+
+      <div class="row">
+        <div class="what"><b>Copy — post-tekster &amp; hashtags</b><small>Selve opslagsteksten per platform, i brandets voice. Højvolumen → billigste model der er god nok.</small><span class="fb">Reserve: tier "smart" (Claude Sonnet) — hvis kvaliteten skuffer på et brand</span></div>
+        <div class="sel">Mistral Small — tier "cheap" <span class="badge eu">EU</span><span class="price">$0,002/story</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Oversættelse</b><small>Brands med flere sprog (fx trailmem: DA + EN) — samme story, begge sprog, én godkendelse.</small></div>
+        <div class="sel">ai.translate — Mistral <span class="badge eu">EU</span><span class="price">$0,001/story</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Alt-tekster</b><small>Beskrivelse af hvert billede til tilgængelighed — LinkedIn og Facebook belønner det, og det er god stil.</small></div>
+        <div class="sel">tier "vision" — Claude Sonnet <span class="price">$0,003/billede</span><span class="arrow">▾</span></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Intelligens &amp; research</h2>
+
+      <div class="row">
+        <div class="what"><b>Web-research</b><small>Før en story produceres: aktuelle vinkler, trends og hashtag-analyse for emnet — så opslaget rammer samtalen der kører NU, ikke sidste måneds.</small><span class="fb">Kørsel: én research pr. story, caches 7 dage pr. emne</span></div>
+        <div class="sel">tier "smart" + websøgning <span class="price">~$0,02/story</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Idé-genkendelse</b><small>Semantisk søgning i idé-biblioteket: finder dubletter ("den idé har du brugt i marts") og beslægtede idéer der kan flettes.</small></div>
+        <div class="sel">text-embedding-3-small <span class="price">~$0,00/idé</span><span class="arrow">▾</span></div>
+      </div>
+
+      <div class="row">
+        <div class="what"><b>Brand-analyse (Discovery)</b><small>Voice, tone, temaer og platform-anbefalinger per brand — leveres af AutoDoc's discovery-motor, genanalyseres ved re-trigger.</small><span class="fb">Seneste analyse: broberg.ai 1. jul · cardmem.com 1. jul · trailmem.com 1. jul</span></div>
+        <div class="sel" style="opacity:.8">Leveres af AutoDoc <span class="badge">EKSTERN — intet modelvalg her</span></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btnp">Gem indstillinger</button>
+      <button class="btns">Nulstil til anbefalet</button>
+      <span class="saved">Gemt ✓</span>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="panel">
+      <h3>Månedligt budget</h3>
+      <p><b>$6,20</b> brugt af <b>$25</b> loft — juli</p>
+      <div class="bar"><i></i></div>
+      <p>Rammes loftet, pauser produktionen og du får Discord-besked. Alle kald logges i Upmetrics med pris pr. story.</p>
+    </div>
+    <div class="panel">
+      <h3>Politikker (kan ikke slås fra)</h3>
+      <div class="polrow"><span class="ic">🇪🇺</span><span><b>Persondata → kun EU.</b> Portrætter og alt med personoplysninger kører aldrig på US/CN-modeller.</span></div>
+      <div class="polrow"><span class="ic">🧑‍🎨</span><span><b>Stil-træning uden ansigter.</b> Brand-LoRA trænes kun på brand-materiale — aldrig billeder af personer.</span></div>
+      <div class="polrow"><span class="ic">🔌</span><span><b>Automatisk reserve.</b> Er en model nede eller suspenderet, degraderes til reserven — produktionen stopper aldrig midt i natten.</span></div>
+      <div class="polrow"><span class="ic">🏷</span><span><b>Tier, ikke modelnavn.</b> Alle valg går gennem ai-sdk's tiers — når en bedre model udkommer, opgraderes ét sted.</span></div>
+    </div>
+    <div class="panel">
+      <h3>Per brand?</h3>
+      <p>Disse valg er globale. Et brand kan overstyre enkelte områder på sin egen brand-side — fx en anden billede-stil til trailmem — men reglen er: <b>én global standard, få undtagelser.</b></p>
+    </div>
+  </div>
+
+</div>
+<footer>Contentpush v5-koncept · Indstillinger → Modeller &amp; produktion — hvert produktions-område har sit modelvalg (custom dropdown, aldrig native), pris pr. enhed, EU-markering og automatisk reserve. Politik-panelet er låst: GDPR-reglerne kan ikke konfigureres væk.</footer>
+</body>
+</html>
