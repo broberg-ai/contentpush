@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contentpush v5 — SOTA koncept</title>
+<style>
+  :root{
+    --background:oklch(0.98 0.01 85);--foreground:oklch(0.22 0.025 65);
+    --card:oklch(0.96 0.012 80);--border:oklch(0.84 0.02 75);
+    --muted:oklch(0.93 0.012 80);--muted-foreground:oklch(0.52 0.02 65);
+    --primary:oklch(0.55 0.11 65);--primary-foreground:oklch(0.985 0.01 85);
+    --radius:0.625rem;
+    --font-heading:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --brand-broberg:oklch(0.55 0.11 65);--brand-cardmem:oklch(0.55 0.10 145);--brand-trail:oklch(0.52 0.10 240);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--background);color:var(--foreground);font-family:var(--font-body);font-size:14px;line-height:1.45}
+  h1,h2,h3{font-family:var(--font-heading);font-weight:600;letter-spacing:-.01em}
+  .top{display:flex;align-items:center;gap:1.25rem;padding:.9rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border)}
+  .top h1{font-size:1.3rem}
+  .pills{display:flex;gap:.4rem}
+  .pill{padding:.32rem .9rem;border:1px solid var(--border);border-radius:999px;background:var(--background);font-size:.8rem}
+  .pill.active{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+  .live{margin-left:auto;font-size:.78rem;color:var(--muted-foreground)}
+  .live b{color:oklch(0.55 0.15 145)}
+  .wrap{max-width:1240px;margin:0 auto;padding:1.25rem 1.5rem;display:grid;grid-template-columns:1fr 300px;gap:1.25rem}
+  .full{grid-column:1/-1}
+  /* pipeline-status */
+  .pipes{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+  .pipe{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.8rem 1rem;display:flex;align-items:center;gap:.75rem}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .pipe .n{font-family:var(--font-heading);font-size:1.35rem}
+  .pipe small{display:block;color:var(--muted-foreground)}
+  .bar{height:5px;border-radius:3px;background:var(--muted);margin-top:.35rem;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:3px}
+  /* kalender */
+  .cal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem}
+  .calhead{display:flex;align-items:baseline;gap:.9rem;margin-bottom:.8rem}
+  .calhead h2{font-size:1.15rem}
+  .calhead .nav{color:var(--muted-foreground);font-size:.85rem}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .dow{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding:.15rem .35rem}
+  .day{min-height:86px;border:1px solid var(--border);border-radius:6px;background:var(--background);padding:.25rem .35rem;font-size:.7rem;color:var(--muted-foreground)}
+  .day.dim{opacity:.45}
+  .story{display:flex;gap:.35rem;align-items:center;border-radius:5px;padding:.22rem .3rem;margin-top:.25rem;font-size:.68rem;color:var(--foreground);background:var(--muted);border-left:3px solid var(--primary)}
+  .thumb{width:22px;height:22px;border-radius:4px;flex:none;background:linear-gradient(135deg,oklch(0.75 0.09 65),oklch(0.55 0.11 65))}
+  .thumb.v{position:relative}
+  .thumb.v::after{content:"▶";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:9px}
+  .story .t{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:110px}
+  .story small{margin-left:auto;color:var(--muted-foreground);font-size:.6rem}
+  .cm{border-left-color:var(--brand-cardmem)}
+  .cm .thumb{background:linear-gradient(135deg,oklch(0.78 0.08 145),oklch(0.5 0.1 145))}
+  .tr{border-left-color:var(--brand-trail)}
+  .tr .thumb{background:linear-gradient(135deg,oklch(0.78 0.07 240),oklch(0.5 0.1 240))}
+  /* rail */
+  .rail{display:flex;flex-direction:column;gap:1rem}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem}
+  .panel h3{font-size:.95rem;margin-bottom:.6rem}
+  .next{display:flex;gap:.6rem;padding:.45rem 0;border-top:1px solid var(--border);align-items:center}
+  .next:first-of-type{border-top:0}
+  .next .thumb{width:40px;height:40px;border-radius:6px}
+  .next .h{font-size:.78rem;line-height:1.25}
+  .next small{display:block;color:var(--muted-foreground);font-size:.68rem}
+  .badges{margin-left:auto;display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+  .b{font-size:.55rem;font-weight:700;border:1px solid var(--border);border-radius:3px;padding:0 3px;color:var(--muted-foreground)}
+  .ok{color:oklch(0.5 0.14 145);border-color:oklch(0.7 0.1 145)}
+  /* årshjul */
+  .wheel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem}
+  .wheel h2{font-size:1.1rem;margin-bottom:.7rem}
+  .months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);text-align:center}
+  .lane{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:4px}
+  .lane .label{grid-column:1/-1;font-size:.68rem;color:var(--muted-foreground);margin:.4rem 0 .1rem;text-align:left;text-transform:none;letter-spacing:0}
+  .act{border-radius:5px;padding:.28rem .45rem;font-size:.66rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .now{outline:2px solid var(--primary);outline-offset:1px}
+  footer{max-width:1240px;margin:0 auto;padding:0 1.5rem 1.5rem;color:var(--muted-foreground);font-size:.72rem}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>Contentpush</h1>
+  <div class="pills">
+    <span class="pill active">Alle brands</span><span class="pill">broberg.ai</span><span class="pill">cardmem.com</span><span class="pill">trailmem.com</span>
+  </div>
+  <div class="live"><b>●</b> I luften · næste tick i morgen 06:00 · 14 stories i pipelinen</div>
+</div>
+
+<div class="wrap">
+
+  <div class="pipes full">
+    <div class="pipe"><span class="dot" style="background:var(--brand-broberg)"></span>
+      <div style="flex:1"><b>broberg.ai</b><small>pipeline: 5 af 5 stories klar</small><div class="bar"><i style="width:100%;background:var(--brand-broberg)"></i></div></div><span class="n">5/5</span></div>
+    <div class="pipe"><span class="dot" style="background:var(--brand-cardmem)"></span>
+      <div style="flex:1"><b>cardmem.com</b><small>genererer story #5 (billede mangler)…</small><div class="bar"><i style="width:80%;background:var(--brand-cardmem)"></i></div></div><span class="n">4/5</span></div>
+    <div class="pipe"><span class="dot" style="background:var(--brand-trail)"></span>
+      <div style="flex:1"><b>trailmem.com</b><small>pipeline: 5 af 5 stories klar</small><div class="bar"><i style="width:100%;background:var(--brand-trail)"></i></div></div><span class="n">5/5</span></div>
+  </div>
+
+  <div class="cal">
+    <div class="calhead"><h2>Juli 2026</h2><span class="nav">‹ måned ›&nbsp;&nbsp;|&nbsp;&nbsp;uge · måned · år</span></div>
+    <div class="grid">
+      <div class="dow">man</div><div class="dow">tir</div><div class="dow">ons</div><div class="dow">tor</div><div class="dow">fre</div><div class="dow">lør</div><div class="dow">søn</div>
+      <div class="day dim">29</div><div class="day dim">30</div>
+      <div class="day">1</div><div class="day">2</div><div class="day">3</div><div class="day">4</div><div class="day">5</div>
+      <div class="day">6<div class="story"><span class="thumb"></span><span class="t">AI-drevet forretning…</span><small>LI·IG</small></div></div>
+      <div class="day">7</div>
+      <div class="day">8<div class="story cm"><span class="thumb v"></span><span class="t">Lens verificerer dit UI</span><small>🎬</small></div></div>
+      <div class="day">9</div><div class="day">10<div class="story tr"><span class="thumb"></span><span class="t">Din næste vandretur</span><small>IG</small></div></div>
+      <div class="day">11</div><div class="day">12</div>
+      <div class="day">13</div><div class="day">14<div class="story cm"><span class="thumb"></span><span class="t">Board = din todo</span><small>LI</small></div></div>
+      <div class="day">15</div><div class="day">16<div class="story"><span class="thumb v"></span><span class="t">Mød apparatet bag…</span><small>🎬</small></div></div>
+      <div class="day">17</div><div class="day">18</div><div class="day">19</div>
+      <div class="day">20<div class="story tr"><span class="thumb"></span><span class="t">Sommerens 3 ruter</span><small>IG·FB</small></div></div>
+      <div class="day">21</div><div class="day">22<div class="story cm"><span class="thumb"></span><span class="t">Fra idé til deploy</span><small>LI</small></div></div>
+      <div class="day">23</div><div class="day">24<div class="story"><span class="thumb"></span><span class="t">Case: Sanne-platformen</span><small>LI·FB</small></div></div>
+      <div class="day">25</div><div class="day">26</div>
+      <div class="day">27</div><div class="day">28<div class="story tr"><span class="thumb v"></span><span class="t">Trail på 30 sekunder</span><small>🎬</small></div></div>
+      <div class="day">29</div><div class="day">30<div class="story cm"><span class="thumb"></span><span class="t">Mockups der godkender…</span><small>LI·IG</small></div></div>
+      <div class="day">31</div><div class="day dim">1</div><div class="day dim">2</div>
+    </div>
+  </div>
+
+  <div class="rail">
+    <div class="panel">
+      <h3>Næste 5 stories</h3>
+      <div class="next"><span class="thumb"></span><div><div class="h">AI-drevet forretningsudvikling — klar til din næste idé</div><small>broberg.ai · 6. jul</small></div><div class="badges"><span class="b ok">KLAR</span><span class="b">🖼 LI·IG·FB</span></div></div>
+      <div class="next"><span class="thumb v" style="background:linear-gradient(135deg,oklch(0.78 0.08 145),oklch(0.5 0.1 145))"></span><div><div class="h">Lens verificerer dit UI før hvert release</div><small>cardmem.com · 8. jul</small></div><div class="badges"><span class="b ok">KLAR</span><span class="b">🎬 15 sek</span></div></div>
+      <div class="next"><span class="thumb" style="background:linear-gradient(135deg,oklch(0.78 0.07 240),oklch(0.5 0.1 240))"></span><div><div class="h">Din næste vandretur starter i Trail</div><small>trailmem.com · 10. jul</small></div><div class="badges"><span class="b ok">KLAR</span><span class="b">🖼 IG</span></div></div>
+      <div class="next"><span class="thumb" style="background:linear-gradient(135deg,oklch(0.78 0.08 145),oklch(0.5 0.1 145))"></span><div><div class="h">Board = din todo-liste — også for AI-agenter</div><small>cardmem.com · 14. jul</small></div><div class="badges"><span class="b">UDKAST</span><span class="b">🖼 LI</span></div></div>
+      <div class="next"><span class="thumb v"></span><div><div class="h">Mød apparatet bag broberg.ai (video)</div><small>broberg.ai · 16. jul</small></div><div class="badges"><span class="b">UDKAST</span><span class="b">🎬 20 sek</span></div></div>
+    </div>
+    <div class="panel">
+      <h3>I dag</h3>
+      <p style="font-size:.8rem;color:var(--muted-foreground)">Intet at poste i dag.<br>Næste: <b style="color:var(--foreground)">6. juli — broberg.ai</b><br><br>2 stories venter på dit blik →</p>
+    </div>
+  </div>
+
+  <div class="wheel full">
+    <h2>Årshjul 2026 — al online marketing, alle brands</h2>
+    <div class="months"><span>jan</span><span>feb</span><span>mar</span><span>apr</span><span>maj</span><span>jun</span><span class="now" style="border-radius:4px">jul</span><span>aug</span><span>sep</span><span>okt</span><span>nov</span><span>dec</span></div>
+    <div class="lane"><div class="label">Kampagner</div>
+      <div class="act" style="grid-column:3/6;background:var(--brand-cardmem)">Cardmem launch-serie</div>
+      <div class="act" style="grid-column:7/9;background:var(--brand-broberg)">Sommer-cases (Sanne, FDS…)</div>
+      <div class="act" style="grid-column:9/11;background:var(--brand-trail)">Trail efterårs-push</div>
+      <div class="act" style="grid-column:11/12;background:oklch(0.45 0.12 25)">Black Friday</div>
+      <div class="act" style="grid-column:12/13;background:oklch(0.5 0.1 25)">Julehilsner</div>
+    </div>
+    <div class="lane"><div class="label">Faste serier (genereres automatisk)</div>
+      <div class="act" style="grid-column:1/13;background:oklch(0.65 0.06 65)">Månedlig case-story · Ugentlig produkt-indsigt · 14-dages brand-posts ×3</div>
+    </div>
+    <div class="lane"><div class="label">Lanceringer & mærkedage</div>
+      <div class="act" style="grid-column:4/5;background:var(--brand-trail)">Trail 1.0</div>
+      <div class="act" style="grid-column:8/9;background:var(--brand-broberg)">broberg.ai relaunch</div>
+      <div class="act" style="grid-column:10/11;background:var(--brand-cardmem)">Cardmem Lens 2.0</div>
+    </div>
+  </div>
+
+</div>
+<footer>Contentpush v5-koncept · årshjulet føder kalenderen · kalenderen holder altid ≥5 færdige stories per brand · hver story = tekst + on-brand billede (+ video) · klik åbner review</footer>
+</body>
+</html>
