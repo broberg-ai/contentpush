@@ -5,10 +5,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run scripts/migrate.ts"
   },
   "dependencies": {
+    "@broberg/db-sdk": "^0.1.0",
     "@broberg/theme": "^0.3.1",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.12.27",
     "preact": "^10.29.4"
   },
@@ -16,6 +20,7 @@
     "@hono/vite-dev-server": "^0.26.0",
     "@preact/preset-vite": "^2.10.5",
     "@types/bun": "^1.3.14",
+    "drizzle-kit": "^0.31.10",
     "typescript": "^6.0.3",
     "vite": "^8.1.3"
   }

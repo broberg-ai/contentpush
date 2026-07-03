@@ -148,3 +148,6 @@ vite.config.ts.timestamp-*
 .env.*
 !.env.example
 .claude/settings.local.json
+
+# lokal dev-database (libSQL-fil)
+.data/
