@@ -13,6 +13,8 @@ export const env = parseEnv(
     CONTENTPUSH_TURSO_URL: z.string().min(1).optional(),
     CONTENTPUSH_TURSO_TOKEN: z.string().min(1).optional(),
     DISCORD_WEBHOOK_URL: z.string().url().optional(),
+    MISTRAL_API_KEY: z.string().min(1).optional(),
+    UPMETRICS_API_KEY: z.string().min(1).optional(),
   }),
 );
 
@@ -21,6 +23,8 @@ export function darkSecrets(): Array<[name: string, consequence: string]> {
   const checks: Array<[string, string | undefined, string]> = [
     ["CONTENTPUSH_TURSO_URL", env.CONTENTPUSH_TURSO_URL, "kører på lokal fil-DB (dev)"],
     ["DISCORD_WEBHOOK_URL", env.DISCORD_WEBHOOK_URL, "notifikationer springes over"],
+    ["MISTRAL_API_KEY", env.MISTRAL_API_KEY, "AI-tekstgenerering svarer 503"],
+    ["UPMETRICS_API_KEY", env.UPMETRICS_API_KEY, "AI-cost logges ikke til upmetrics"],
   ];
   return checks
     .filter(([, value]) => !value)

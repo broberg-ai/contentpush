@@ -10,9 +10,11 @@
     "db:migrate": "bun run scripts/migrate.ts"
   },
   "dependencies": {
+    "@broberg/ai-sdk": "^0.21.1",
     "@broberg/config": "^0.2.0",
     "@broberg/db-sdk": "^0.1.0",
     "@broberg/theme": "^0.3.1",
+    "@upmetrics/sdk": "^0.3.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.27",
