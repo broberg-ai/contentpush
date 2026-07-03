@@ -1,5 +1,6 @@
 import { render } from "preact";
 import { useState } from "preact/hooks";
+import { init as initUpmetrics } from "@upmetrics/sdk";
 import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
 import { QueueBoard, type Post } from "./components/QueueBoard";
@@ -8,6 +9,11 @@ import "./styles/tokens.css";
 import "./styles/app.css";
 
 initTheme({ defaultTheme: "light-warm" });
+
+const upmetricsDsn = import.meta.env.VITE_UPMETRICS_DSN as string | undefined;
+if (upmetricsDsn) {
+  initUpmetrics({ dsn: upmetricsDsn, environment: import.meta.env.MODE });
+}
 
 function App() {
   const [openPost, setOpenPost] = useState<Post | null>(null);

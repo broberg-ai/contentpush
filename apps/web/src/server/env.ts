@@ -15,6 +15,7 @@ export const env = parseEnv(
     DISCORD_WEBHOOK_URL: z.string().url().optional(),
     MISTRAL_API_KEY: z.string().min(1).optional(),
     UPMETRICS_API_KEY: z.string().min(1).optional(),
+    UPMETRICS_DSN: z.string().url().optional(),
     // CONTENTPUSH_-præfiks: generiske R2_*-vars lækker fra det arvede miljø
     // (buddys tmux-global — _ID/_BUCKET/_ENDPOINT-suffikser rammer ikke
     // secret-scrubben; samme klasse som TURSO-hændelsen)
@@ -35,6 +36,7 @@ export function darkSecrets(): Array<[name: string, consequence: string]> {
     ["DISCORD_WEBHOOK_URL", env.DISCORD_WEBHOOK_URL, "notifikationer springes over"],
     ["MISTRAL_API_KEY", env.MISTRAL_API_KEY, "AI-tekstgenerering svarer 503"],
     ["UPMETRICS_API_KEY", env.UPMETRICS_API_KEY, "AI-cost logges ikke til upmetrics"],
+    ["UPMETRICS_DSN", env.UPMETRICS_DSN, "runtime-fejl fanges ikke af upmetrics"],
     ["CONTENTPUSH_R2_ACCESS_KEY_ID", env.CONTENTPUSH_R2_ACCESS_KEY_ID, "media-upload svarer 503 (mangler R2-creds)"],
   ];
   return checks

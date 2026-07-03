@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { darkSecrets } from "./env";
+import { darkSecrets, env } from "./env";
 import { generateRoute } from "./routes/generate";
 import { brandsRoute } from "./routes/brands";
 import { libraryRoute } from "./routes/library";
@@ -9,6 +9,24 @@ import { packageRoute } from "./routes/package";
 
 for (const [name, consequence] of darkSecrets()) {
   console.warn(`[ship-dark] ${name} ikke sat — ${consequence}`);
+}
+
+// Dynamisk import + catch: @upmetrics/sdk@0.3.0 shipper extensionless
+// ESM-imports (./scrub) der fejler i Nodes resolver (Vite dev-SSR; Bun-prod
+// er ok) — meldt til upmetrics. Og telemetri-init må aldrig vælte boot.
+if (env.UPMETRICS_DSN) {
+  import("@upmetrics/sdk")
+    .then(({ init }) =>
+      init({
+        dsn: env.UPMETRICS_DSN!,
+        environment: env.APP_PUBLIC_URL ? "production" : "development",
+      }),
+    )
+    .catch((err) =>
+      console.warn(
+        `[upmetrics] init sprang over: ${err instanceof Error ? err.message : err}`,
+      ),
+    );
 }
 
 const app = new Hono();
