@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contentpush v5 — nyhedsbrev & mailingliste</title>
+<style>
+  :root{
+    --background:oklch(0.98 0.01 85);--foreground:oklch(0.22 0.025 65);
+    --card:oklch(0.96 0.012 80);--border:oklch(0.84 0.02 75);
+    --muted:oklch(0.93 0.012 80);--muted-foreground:oklch(0.52 0.02 65);
+    --primary:oklch(0.55 0.11 65);--primary-foreground:oklch(0.985 0.01 85);
+    --radius:0.625rem;
+    --font-heading:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --ok:oklch(0.5 0.14 145);--eu:oklch(0.45 0.1 240);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--background);color:var(--foreground);font-family:var(--font-body);font-size:14px;line-height:1.45}
+  h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;letter-spacing:-.01em}
+  .top{display:flex;align-items:center;gap:1rem;padding:.9rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border)}
+  .top h1{font-size:1.2rem}
+  .top .crumb{color:var(--muted-foreground);font-size:.8rem}
+  .pills{display:flex;gap:.4rem;margin-left:auto}
+  .pill{padding:.3rem .85rem;border:1px solid var(--border);border-radius:999px;background:var(--background);font-size:.78rem}
+  .pill.active{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+  .wrap{max-width:1160px;margin:0 auto;padding:1.5rem;display:grid;grid-template-columns:1fr 320px;gap:1.5rem;align-items:start}
+  .intro{grid-column:1/-1;color:var(--muted-foreground);font-size:.82rem;max-width:80ch}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem;margin-bottom:1rem}
+  .panel h3{font-size:.98rem;margin-bottom:.6rem}
+  .panel p{font-size:.76rem;color:var(--muted-foreground);line-height:1.5}
+  /* emne-valg */
+  .subj{display:flex;gap:.55rem;align-items:flex-start;padding:.5rem .6rem;border:1px solid var(--border);border-radius:6px;margin-bottom:.45rem;font-size:.8rem;background:var(--background)}
+  .subj.sel{border-color:var(--primary);background:var(--muted)}
+  .radio{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);flex:none;margin-top:2px}
+  .subj.sel .radio{border-color:var(--primary);background:var(--primary)}
+  .subj small{display:block;color:var(--muted-foreground);font-size:.66rem}
+  /* email-tro preview */
+  .mail{background:#faf9f7;border:1px solid oklch(0.88 0.005 85);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px oklch(0 0 0/.07);color:#1d1a16}
+  .mailmeta{padding:.6rem .9rem;border-bottom:1px solid #eceae6;font-size:.72rem;color:#666}
+  .mailmeta b{color:#1d1a16}
+  .mailbody{padding:1.4rem 2rem;max-width:560px;margin:0 auto}
+  .mailhead{font-family:var(--font-heading);font-size:1.05rem;letter-spacing:.02em;padding-bottom:.9rem;border-bottom:2px solid oklch(0.55 0.11 65);margin-bottom:1rem}
+  .mailhead small{display:block;font-family:var(--font-body);font-size:.66rem;color:#8a8378;letter-spacing:.08em;text-transform:uppercase;margin-top:.2rem}
+  .mailintro{font-size:.84rem;line-height:1.65;margin-bottom:1.2rem}
+  .mblock{display:flex;gap:.9rem;padding:.9rem 0;border-top:1px solid #eceae6}
+  .mthumb{width:92px;height:70px;border-radius:6px;flex:none;background:linear-gradient(135deg,oklch(0.75 0.09 65),oklch(0.55 0.11 65))}
+  .mthumb.cm{background:linear-gradient(135deg,oklch(0.78 0.08 145),oklch(0.5 0.1 145))}
+  .mblock h4{font-family:var(--font-heading);font-size:.92rem;margin-bottom:.25rem}
+  .mblock p{font-size:.76rem;color:#555;line-height:1.5;margin-bottom:.35rem}
+  .mlink{font-size:.74rem;color:oklch(0.5 0.1 65);font-weight:600}
+  .mailfoot{border-top:1px solid #eceae6;margin-top:1.1rem;padding-top:.8rem;font-size:.64rem;color:#999;line-height:1.6}
+  .mailfoot u{color:#777}
+  /* rail */
+  .stat{display:flex;align-items:baseline;gap:.5rem}
+  .stat b{font-family:var(--font-heading);font-size:1.5rem}
+  .stat small{color:var(--ok);font-size:.72rem}
+  .polrow{display:flex;gap:.5rem;font-size:.74rem;padding:.4rem 0;border-top:1px solid var(--border);line-height:1.45}
+  .polrow:first-of-type{border-top:0}
+  .badge{font-size:.56rem;font-weight:700;border:1px solid var(--border);border-radius:3px;padding:.05rem .28rem;color:var(--muted-foreground)}
+  .badge.eu{color:var(--eu);border-color:oklch(0.7 0.08 240)}
+  .badge.ok{color:var(--ok);border-color:oklch(0.7 0.1 145)}
+  .code{background:var(--foreground);color:var(--background);border-radius:6px;padding:.55rem .7rem;font-family:ui-monospace,Menlo,monospace;font-size:.66rem;overflow-x:auto;white-space:nowrap;margin:.4rem 0}
+  .actions{display:flex;flex-direction:column;gap:.45rem}
+  .btnp,.btns{border-radius:6px;padding:.5rem .95rem;font-size:.78rem;border:1px solid var(--border);background:var(--background);text-align:center}
+  .btnp{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:.3rem .8rem;font-size:.76rem}
+  .kv dt{color:var(--muted-foreground)}
+  footer{max-width:1160px;margin:0 auto;padding:0 1.5rem 2rem;color:var(--muted-foreground);font-size:.72rem}
+</style>
+</head>
+<body>
+
+<div class="top"><h1>Contentpush</h1><span class="crumb">Nyhedsbrev → broberg.ai · juli 2026</span>
+  <div class="pills"><span class="pill active">broberg.ai</span><span class="pill">cardmem.com</span><span class="pill">trailmem.com</span></div>
+</div>
+
+<div class="wrap">
+  <p class="intro">Nyhedsbrevet er genbrug, ikke merarbejde: apparatet samler månedens godkendte stories, skriver en intro i brandets voice og foreslår emnelinjer. Du ser mailen præcis som modtageren får den, godkender — og udsendelsen følger timing-reglerne (sidste torsdag, 10:00). Samme godkend/regenerér-mønster som stories.</p>
+
+  <div>
+    <div class="panel">
+      <h3>Emnelinje — vælg eller skriv selv</h3>
+      <div class="subj sel"><span class="radio"></span><div>AI der læser 20 år gammel kode — og tre andre historier fra juli<small>anbefalet — konkret + nysgerrighed, 58 tegn</small></div></div>
+      <div class="subj"><span class="radio"></span><div>Juli hos broberg.ai: legacy-AI, Lens-øjne og et årshjul<small>alternativ — mere intern tone</small></div></div>
+    </div>
+
+    <div class="mail">
+      <div class="mailmeta">Fra: <b>Christian fra broberg.ai</b> &lt;nyt@broberg.ai&gt; · Til: <b>dig</b> · Emne: <b>AI der læser 20 år gammel kode — og tre andre historier fra juli</b></div>
+      <div class="mailbody">
+        <div class="mailhead">broberg.ai<small>nyhedsbrev · juli 2026</small></div>
+        <p class="mailintro">Hej — juli bød på en kunde der troede deres 20 år gamle FileMaker-løsning var ulæselig for AI (den tog en eftermiddag), og på værktøjer der nu kan <em>se</em> hvad de selv bygger. Her er månedens tre historier, kort fortalt.</p>
+        <div class="mblock"><span class="mthumb"></span><div><h4>Kan AI læse en 20 år gammel FileMaker-løsning?</h4><p>Kort svar: ja. 400 scripts kortlagt på en eftermiddag — og en migreringsplan der ellers ville have taget uger.</p><span class="mlink">Læs hele historien →</span></div></div>
+        <div class="mblock"><span class="mthumb cm"></span><div><h4>AI der bygger software skal også kunne SE den</h4><p>Cardmem Lens fangede en visuel fejl før noget menneske havde set den. Sådan verificerer vi UI før hvert release.</p><span class="mlink">Se videoen (15 sek) →</span></div></div>
+        <div class="mblock"><span class="mthumb"></span><div><h4>Case: Sannes platform fra idé til drift</h4><p>Fra første skitse til kørende booking-platform — hvad der tog tid, og hvad AI'en klarede selv.</p><span class="mlink">Læs casen →</span></div></div>
+        <div class="mailfoot">Du får denne mail fordi du tilmeldte dig på broberg.ai (dobbelt bekræftet). <u>Afmeld med ét klik</u> · broberg.ai · Blokhus, Danmark</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h3>Udsendelse</h3>
+      <dl class="kv">
+        <dt>Planlagt</dt><dd><b>torsdag 30. juli, 10:00</b> (timing-reglen)</dd>
+        <dt>Kanal</dt><dd>@broberg/mail</dd>
+        <dt>Indhold</dt><dd>3 stories fra juli · auto-udvalgt, kan byttes</dd>
+      </dl>
+      <div class="actions" style="margin-top:.7rem">
+        <button class="btnp">Godkend &amp; planlæg udsendelse ✓</button>
+        <button class="btns">Send test til mig først</button>
+        <button class="btns">Regenerér intro</button>
+        <button class="btns">Byt stories ud</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Mailinglisten — Contentpush ejer den</h3>
+      <div class="stat"><b>412</b><span>modtagere</span><small>+18 i juli</small></div>
+      <div class="polrow" style="margin-top:.5rem"><span>✅</span><span><b>Dobbelt opt-in</b> — bekræftelsesmail før nogen står på listen.</span></div>
+      <div class="polrow"><span>🇪🇺</span><span><b>EU-lagring</b> — modtagerdata bor i vores egen database (Turso, Stockholm). <span class="badge eu">GDPR</span></span></div>
+      <div class="polrow"><span>🚪</span><span><b>Afmeld med ét klik</b> — håndteres automatisk, ingen manuel liste-hygiejne.</span></div>
+      <p style="margin-top:.6rem">Sites uden egen nyhedsbrevs-teknologi indlejrer bare tilmeldings-widget'en:</p>
+      <div class="code">&lt;script src="https://contentpush.broberg.ai/signup.js" data-brand="broberg-ai"&gt;&lt;/script&gt;</div>
+      <p>Sites med eget system (fx via cms) kan nøjes med indholdet — Contentpush leverer så den færdige mail via API, og listen bliver hvor den er.</p>
+    </div>
+  </div>
+
+</div>
+<footer>Contentpush v5-koncept · Nyhedsbrevet er den fjerde kanal — populeret af månedens godkendte stories, intro i brandets voice, email-tro preview, udsendelse via @broberg/mail efter timing-reglerne. Mailinglisten kan ejes af Contentpush (dobbelt opt-in, EU-lagring, ét-kliks afmeld, embed-widget) eller blive hos sitet.</footer>
+</body>
+</html>

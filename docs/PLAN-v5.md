@@ -60,6 +60,8 @@ LEVERING  →  notifikation på dagen · download-pakke ELLER kopiér-til-
 4. **Alt indhold er færdigt.** Tekster per platform + on-brand billede (brand-styles, logoer i SVG) + korte videoer hvor formatet bærer.
 5. **Man ser hvad man får.** Platform-tro preview før godkendelse — som Hootsuite/Buffer, men i cardmem-roen.
 6. **Hele porteføljen, ét sted.** Brands som spor i samme kalender og årshjul; AutoDoc Discovery onboarder et nyt brand på minutter.
+7. **Timing der rammer** (Christian 2026-07-04). To lag: (a) **mærkedage** — dage man skal UNDGÅ at poste på (helligdage, jul, valgdage — dansk helligdagskalender auto + egne) og dage man skal UDNYTTE (Black Friday, nytår, brancherelevante dage); kalenderen og nat-ticket planlægger aldrig ind i undgå-dage og flytter selv en story der rammer én. (b) **tidsvinduer** — hvert platform×brand har sine gode tidsrum (fx LinkedIn tir–tor 08–10); "tid til at poste"-beskeden lander i vinduets start, og nyhedsbrevs-udsendelse følger samme vinduer.
+8. **Nyhedsbrevet — den fjerde kanal** (Christian 2026-07-04). Contentpush producerer og populerer et nyhedsbrev per brand af periodens godkendte stories (genbrug, ikke merarbejde: intro i brandets voice + story-blokke + emne-forslag, email-tro preview før godkendelse, udsendelse via @broberg/mail). Og mere end det: for sites der ikke selv vil eje teknologien kan Contentpush **stå for selve mailinglisten** — signup-widget til embedding, double opt-in, EU-lagring, automatisk afmeldelse (GDPR). Årshjulet får dermed nyhedsbreve som aktivitets-type fra start.
 
 ## Konkurrent-lærdomme (Christians research 2026-07-04)
 
@@ -83,12 +85,15 @@ AI-tekst i brand-voice (Mistral) · billede/video-generering (ai-sdk F033: Recra
 | Bølge | Indhold | Bygger på |
 |---|---|---|
 | **1. Kalenderen + fyldt pipeline** | Kalender-view (mockup→build), ≥5-buffer per brand, billede på HVER story, **platform-tro preview i review**, **idé-bibliotek** (indbakke der føder generatoren), kopiér-til-udklipsholder | F012 (re-scopes), F003.3, ai-sdk F033 |
-| **2. Årshjulet** | Aktivitets-model + årshjuls-view, aktivitet→story-generering | F015 (ny) |
+| **2. Årshjulet + timing** | Aktivitets-model + årshjuls-view, aktivitet→story-generering, mærkedage (undgå/udnyt) + tidsvinduer per platform×brand | F015 (ny) |
 | **3. Video + polish** | Korte videoer (ai.video, spike først), SOTA-finish | F014 (ny) |
+| **4. Nyhedsbrev + mailingliste** | Nyhedsbrevs-composer (populeret af periodens stories), udsendelse via @broberg/mail, evt. egen mailingliste (signup-widget, double opt-in, EU-lagring) — placering i rækkefølgen afventer Christians prioritering | F016 (ny) |
 | Sideløbende | Deploy (F011 — GO givet, holdt til konceptnik), F009 brand-scoping, F010 Discovery-consumer | eksisterende |
 
 ## Åbne spørgsmål til Christian
-1. Reaktion på mockuppen — er DETTE retningen? (justeringer er billige nu)
-2. Årshjulet: også ikke-SoMe-aktiviteter (nyhedsbreve, blogposts via cms) fra start, eller SoMe først?
+1. Reaktion på mockupperne (dashboard, detaljer, indstillinger, timing, nyhedsbrev) — er DETTE retningen? (justeringer er billige nu)
+2. ~~Årshjulet: også ikke-SoMe-aktiviteter fra start?~~ **Afgjort 2026-07-04: nyhedsbreve er IND** (punkt 8 ovenfor). Blogposts via cms fortsat åbent.
 3. Video: generative klip (AI) eller template-baserede animationer? (spike kan afgøre pris/kvalitet)
 4. F011-deploy: kør nu (infra er koncept-uafhængig) eller vent på bølge 1?
+5. Mailinglisten: skal Contentpush EJE liste + signup fra start (bølge 4 fuldt), eller først producere nyhedsbrevs-indhold til eksisterende lister og tage liste-ejerskabet i næste hug?
+6. Nyhedsbrevs-kadence per brand — månedligt som udgangspunkt?

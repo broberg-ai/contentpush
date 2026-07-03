@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contentpush v5 — timing: tidsvinduer & mærkedage</title>
+<style>
+  :root{
+    --background:oklch(0.98 0.01 85);--foreground:oklch(0.22 0.025 65);
+    --card:oklch(0.96 0.012 80);--border:oklch(0.84 0.02 75);
+    --muted:oklch(0.93 0.012 80);--muted-foreground:oklch(0.52 0.02 65);
+    --primary:oklch(0.55 0.11 65);--primary-foreground:oklch(0.985 0.01 85);
+    --radius:0.625rem;
+    --font-heading:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --ok:oklch(0.5 0.14 145);--avoid:oklch(0.5 0.14 25);--use:oklch(0.5 0.12 145);
+    --brand-cardmem:oklch(0.55 0.10 145);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--background);color:var(--foreground);font-family:var(--font-body);font-size:14px;line-height:1.45}
+  h1,h2,h3,h4{font-family:var(--font-heading);font-weight:600;letter-spacing:-.01em}
+  .top{display:flex;align-items:center;gap:1rem;padding:.9rem 1.5rem;background:var(--card);border-bottom:1px solid var(--border)}
+  .top h1{font-size:1.2rem}
+  .top .crumb{color:var(--muted-foreground);font-size:.8rem}
+  .pills{display:flex;gap:.4rem;margin-left:auto}
+  .pill{padding:.3rem .85rem;border:1px solid var(--border);border-radius:999px;background:var(--background);font-size:.78rem}
+  .pill.active{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+  .wrap{max-width:1100px;margin:0 auto;padding:1.5rem}
+  .section{margin-bottom:2rem}
+  .section>h2{font-size:1.15rem}
+  .section>.sub{color:var(--muted-foreground);font-size:.8rem;margin:.25rem 0 .9rem;max-width:75ch}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem}
+  /* tidsvinduer */
+  .winrow{display:grid;grid-template-columns:130px 1fr 210px;gap:1rem;align-items:center;padding:.7rem 0;border-top:1px solid var(--border)}
+  .winrow:first-of-type{border-top:0}
+  .winrow .plat{font-weight:600;font-size:.84rem}
+  .winrow .plat small{display:block;font-weight:400;color:var(--muted-foreground);font-size:.68rem}
+  .week{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .wday{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted-foreground);text-align:center;padding-bottom:2px}
+  .slot{height:22px;border-radius:4px;background:var(--muted);border:1px solid var(--border)}
+  .slot.on{background:oklch(0.72 0.08 145);border-color:transparent}
+  .slot.best{background:var(--ok);border-color:transparent;position:relative}
+  .slot.best::after{content:"★";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:.6rem}
+  .winrow .time{font-size:.76rem;color:var(--muted-foreground)}
+  .winrow .time b{color:var(--foreground)}
+  .legend{font-size:.68rem;color:var(--muted-foreground);margin-top:.6rem}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin:0 .25rem 0 .7rem}
+  /* mærkedage */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  .dayrow{display:flex;gap:.6rem;align-items:center;padding:.5rem 0;border-top:1px solid var(--border);font-size:.78rem}
+  .dayrow:first-of-type{border-top:0}
+  .dayrow .d{flex:none;width:64px;font-weight:600;font-size:.72rem}
+  .dayrow small{display:block;color:var(--muted-foreground);font-size:.66rem}
+  .chip{margin-left:auto;flex:none;font-size:.56rem;font-weight:700;border:1px solid var(--border);border-radius:3px;padding:.05rem .3rem;color:var(--muted-foreground)}
+  .chip.auto{color:var(--eu,oklch(0.45 0.1 240));border-color:oklch(0.7 0.08 240)}
+  .h-avoid{color:var(--avoid)}
+  .h-use{color:var(--use)}
+  .addrow{border:1px dashed var(--border);border-radius:6px;padding:.5rem .6rem;font-size:.75rem;color:var(--muted-foreground);margin-top:.6rem}
+  /* kalender-demo */
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:.4rem}
+  .dow{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted-foreground);padding:.15rem .3rem}
+  .day{min-height:78px;border:1px solid var(--border);border-radius:6px;background:var(--background);padding:.25rem .35rem;font-size:.7rem;color:var(--muted-foreground)}
+  .day.avoid{background:oklch(0.96 0.02 25);border-color:oklch(0.85 0.05 25)}
+  .day.avoid .tag{color:var(--avoid);font-size:.58rem;font-weight:700;display:block;margin-top:.2rem}
+  .day.use{background:oklch(0.96 0.02 145);border-color:oklch(0.82 0.06 145)}
+  .day.use .tag{color:var(--use);font-size:.58rem;font-weight:700;display:block;margin-top:.2rem}
+  .story{display:flex;gap:.35rem;align-items:center;border-radius:5px;padding:.22rem .3rem;margin-top:.25rem;font-size:.66rem;color:var(--foreground);background:var(--muted);border-left:3px solid var(--brand-cardmem)}
+  .story .thumb{width:20px;height:20px;border-radius:4px;flex:none;background:linear-gradient(135deg,oklch(0.78 0.08 145),oklch(0.5 0.1 145))}
+  .story.moved{outline:1.5px dashed var(--ok);outline-offset:1px}
+  .movednote{font-size:.58rem;color:var(--ok);display:block;margin-top:.15rem}
+  .ghost{opacity:.4;text-decoration:line-through}
+  footer{max-width:1100px;margin:0 auto;padding:0 1.5rem 2rem;color:var(--muted-foreground);font-size:.72rem}
+</style>
+</head>
+<body>
+
+<div class="top"><h1>Contentpush</h1><span class="crumb">Indstillinger → Timing &amp; mærkedage</span>
+  <div class="pills"><span class="pill active">Alle brands</span><span class="pill">broberg.ai</span><span class="pill">cardmem.com</span><span class="pill">trailmem.com</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="section">
+    <h2>Tidsvinduer — hvornår på dagen, hvilke dage</h2>
+    <p class="sub">Hver platform har sine gode tidsrum. Kalenderen planlægger kun ind i grønne felter, ★ er det bedste slot — og "tid til at poste"-beskeden på Discord lander ved vinduets start, ikke ved midnat. Standarderne kommer fra platform-statistik + brand-analysens anbefaling; du kan overstyre alt.</p>
+    <div class="panel">
+      <div class="winrow">
+        <div class="plat">LinkedIn<small>B2B — arbejdsdage, morgen</small></div>
+        <div class="week">
+          <span class="wday">man</span><span class="wday">tir</span><span class="wday">ons</span><span class="wday">tor</span><span class="wday">fre</span><span class="wday">lør</span><span class="wday">søn</span>
+          <span class="slot on"></span><span class="slot best"></span><span class="slot on"></span><span class="slot on"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
+        </div>
+        <div class="time"><b>08:00–10:00</b> · bedst: tirsdag 08:30</div>
+      </div>
+      <div class="winrow">
+        <div class="plat">Instagram<small>frokost + aften</small></div>
+        <div class="week">
+          <span class="wday">man</span><span class="wday">tir</span><span class="wday">ons</span><span class="wday">tor</span><span class="wday">fre</span><span class="wday">lør</span><span class="wday">søn</span>
+          <span class="slot on"></span><span class="slot on"></span><span class="slot best"></span><span class="slot on"></span><span class="slot on"></span><span class="slot"></span><span class="slot on"></span>
+        </div>
+        <div class="time"><b>11:30–13:00</b> og <b>19:00–21:00</b></div>
+      </div>
+      <div class="winrow">
+        <div class="plat">Facebook<small>aften + weekend</small></div>
+        <div class="week">
+          <span class="wday">man</span><span class="wday">tir</span><span class="wday">ons</span><span class="wday">tor</span><span class="wday">fre</span><span class="wday">lør</span><span class="wday">søn</span>
+          <span class="slot"></span><span class="slot"></span><span class="slot on"></span><span class="slot"></span><span class="slot"></span><span class="slot on"></span><span class="slot best"></span>
+        </div>
+        <div class="time"><b>19:00–21:00</b> · bedst: søndag 19:30</div>
+      </div>
+      <div class="winrow">
+        <div class="plat">Nyhedsbrev<small>følger samme regler</small></div>
+        <div class="week">
+          <span class="wday">man</span><span class="wday">tir</span><span class="wday">ons</span><span class="wday">tor</span><span class="wday">fre</span><span class="wday">lør</span><span class="wday">søn</span>
+          <span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot best"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span>
+        </div>
+        <div class="time"><b>sidste torsdag i måneden, 10:00</b></div>
+      </div>
+      <p class="legend">Felter: <i style="background:var(--muted);border:1px solid var(--border)"></i> lukket <i style="background:oklch(0.72 0.08 145)"></i> åbent vindue <i style="background:var(--ok)"></i> ★ bedste slot</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Mærkedage — undgå eller udnyt</h2>
+    <p class="sub">Den danske helligdagskalender er indbygget (AUTO) — den skal du aldrig vedligeholde. Dine egne mærkedage (EGEN) lægger du selv til, globalt eller per brand. Undgå-dage blokerer planlægning; udnyt-dage trækker automatisk en tematiseret ekstra-story fra pipelinen.</p>
+    <div class="cols">
+      <div class="panel">
+        <h3 class="h-avoid">⛔ Undgå at poste</h3>
+        <div class="dayrow"><span class="d">24–26 dec</span><div>Juledagene<small>ingen læser — og det ser desperat ud</small></div><span class="chip auto">AUTO</span></div>
+        <div class="dayrow"><span class="d">1. jan</span><div>Nytårsdag<small>tømmermænds-tavshed</small></div><span class="chip auto">AUTO</span></div>
+        <div class="dayrow"><span class="d">2–6 apr</span><div>Påsken<small>hele det lange stræk</small></div><span class="chip auto">AUTO</span></div>
+        <div class="dayrow"><span class="d">5. jun</span><div>Grundlovsdag<small>halv fridag, politisk støj</small></div><span class="chip auto">AUTO</span></div>
+        <div class="dayrow"><span class="d">flydende</span><div>Valgdage (FV/KV/EP)<small>feedet er ét stort valgstudie</small></div><span class="chip auto">AUTO</span></div>
+        <div class="dayrow"><span class="d">uge 29–30</span><div>Industriferien — dæmpet<small>halv kadence, ikke fuldt stop</small></div><span class="chip">EGEN</span></div>
+        <div class="addrow">＋ Tilføj undgå-dag…</div>
+      </div>
+      <div class="panel">
+        <h3 class="h-use">✦ Udnyt dagen</h3>
+        <div class="dayrow"><span class="d">27. nov</span><div>Black Friday<small>kobles til årshjulets kampagne</small></div><span class="chip auto">AUTO</span></div>
+        <div class="dayrow"><span class="d">30. nov</span><div>Cyber Monday<small>sidste chance-vinkel</small></div><span class="chip auto">AUTO</span></div>
+        <div class="dayrow"><span class="d">2. jan</span><div>"Året der kommer"<small>plan/forsæt-story per brand</small></div><span class="chip">EGEN</span></div>
+        <div class="dayrow"><span class="d">uge 41</span><div>Digital Tech Week Aalborg<small>lokal synlighed for broberg.ai</small></div><span class="chip">EGEN</span></div>
+        <div class="dayrow"><span class="d">28. jan</span><div>Databeskyttelsesdagen<small>GDPR-vinkel — oplagt for Trail</small></div><span class="chip">EGEN</span></div>
+        <div class="addrow">＋ Tilføj udnyt-dag…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Sådan ser det ud i kalenderen</h2>
+    <p class="sub">Eksempel fra juni: en story var planlagt til fredag d. 5. (Grundlovsdag). Nat-ticket flyttede den selv til torsdag d. 4. — inden for LinkedIn-vinduet — og markerede hvorfor. Du skal ingenting.</p>
+    <div class="panel">
+      <div class="grid">
+        <div class="dow">man</div><div class="dow">tir</div><div class="dow">ons</div><div class="dow">tor</div><div class="dow">fre</div><div class="dow">lør</div><div class="dow">søn</div>
+        <div class="day">1</div>
+        <div class="day">2</div>
+        <div class="day">3</div>
+        <div class="day">4<div class="story moved"><span class="thumb"></span>Board = din todo</div><span class="movednote">↷ flyttet fra 5. jun (Grundlovsdag)</span></div>
+        <div class="day avoid">5<span class="tag">⛔ GRUNDLOVSDAG</span><div class="story ghost"><span class="thumb"></span>Board = din todo</div></div>
+        <div class="day">6</div>
+        <div class="day">7</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<footer>Contentpush v5-koncept · Timing &amp; mærkedage — tidsvinduer per platform×brand (★ = bedste slot; Discord-beskeden følger vinduet), dansk helligdagskalender indbygget som undgå-dage, udnyt-dage føder årshjulet, og kalenderen flytter selv stories væk fra blokerede dage med synlig begrundelse.</footer>
+</body>
+</html>
