@@ -740,6 +740,137 @@ h3 {
   font-weight: 600;
 }
 
+/* Brand-stil (F003.3) — LoRA-træning fra bibliotekets brand-billeder */
+.brand-style {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.brand-style-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.625rem;
+}
+
+.brand-style-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.style-status {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.style-status.trained {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.style-status.training {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.style-picker {
+  margin-top: 0.75rem;
+}
+
+.style-picker-hint {
+  margin: 0 0 0.625rem;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.style-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.style-pick {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--muted);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 120ms;
+}
+
+.style-pick:hover {
+  border-color: var(--ring);
+}
+
+.style-pick:active {
+  filter: brightness(0.92);
+}
+
+.style-pick.selected {
+  border-color: var(--primary);
+}
+
+.style-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.style-pick-fallback {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.style-pick-check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.style-picker-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.style-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.style-confirm input {
+  margin-top: 2px;
+  accent-color: var(--primary);
+}
+
+.style-picker-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 /* Story-sheet (F012.5) — fuld detalje-visning, IKKE modal. Jf. detalje-mockup. */
 .story-sheet {
   background: var(--card);

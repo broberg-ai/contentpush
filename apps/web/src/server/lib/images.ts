@@ -44,11 +44,13 @@ export async function generateStoryImage(
   const prompt = buildImagePrompt(brand, headline);
   console.log(`[image] ${brand.name}: prompt = ${prompt.replace(/\n/g, " · ")}`);
 
+  // F003.3: er der trænet en brand-stil-LoRA, styrer den udtrykket
   const { url, usage } = await ai.image({
     prompt,
     width: 1200,
     height: 800,
     retryOnBlack: true,
+    ...(brand.loraId ? { lora: brand.loraId } : {}),
     purpose: "contentpush story-billede",
   });
 

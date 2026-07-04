@@ -1,4 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
+import { BrandStyle } from "./BrandStyle";
 
 type Brand = {
   id: string;
@@ -120,6 +121,8 @@ export function BrandSettings() {
           </div>
         </form>
       )}
+
+      {selectedId && <BrandStyle brandId={selectedId} />}
     </section>
   );
 }
