@@ -5,6 +5,13 @@ export type CalendarPost = Post & { thumbUrl: string | null };
 
 type Brand = { id: string; name: string };
 
+type PipelineRow = {
+  brandId: string;
+  name: string;
+  futureCount: number;
+  target: number;
+};
+
 const DOW = ["man", "tir", "ons", "tor", "fre", "lør", "søn"];
 
 // Brandfarve efter position i brand-listen (jf. godkendt dashboard-mockup:
@@ -46,8 +53,17 @@ export function CalendarView({
   const [month, setMonth] = useState(currentMonth);
   const [days, setDays] = useState<Record<string, CalendarPost[]>>({});
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [pipeline, setPipeline] = useState<PipelineRow[]>([]);
   const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/calendar/pipeline")
+      .then((r) => r.json())
+      .then(({ pipeline }: { pipeline: PipelineRow[] }) =>
+        setPipeline(pipeline),
+      );
+  }, [refreshKey]);
 
   useEffect(() => {
     fetch("/api/brands")
@@ -86,6 +102,25 @@ export function CalendarView({
 
   return (
     <section class="calendar" data-testid="calendar-root">
+      <div class="pipeline-row" data-testid="pipeline-status-root">
+        {pipeline.map((row) => (
+          <div
+            key={row.brandId}
+            class={`pipeline-card ${brandClass.get(row.brandId) ?? "brand-c0"}`}
+            data-testid={`pipeline-brand-${row.brandId}`}
+          >
+            <span class="pipeline-name">{row.name}</span>
+            <span class="pipeline-count" data-testid={`pipeline-count-${row.brandId}`}>
+              {row.futureCount}/{row.target}
+            </span>
+            <span class="pipeline-bar">
+              <i
+                style={`width:${Math.min(100, (row.futureCount / row.target) * 100)}%`}
+              />
+            </span>
+          </div>
+        ))}
+      </div>
       <header class="calendar-head">
         <h2 data-testid="calendar-month-label">{monthLabel(month)}</h2>
         <div class="calendar-nav">

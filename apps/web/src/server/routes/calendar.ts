@@ -11,8 +11,30 @@ function dateKey(d: Date): string {
   return d.toLocaleDateString("sv-SE", { timeZone: "Europe/Copenhagen" });
 }
 
+// F012.2: pipeline-status per brand — hvor mange fremtidige stories ligger klar.
+const PIPELINE_TARGET = 5;
+
 // F012.1: månedens posts grupperet pr. dato, med brandName + thumb-URL.
-export const calendarRoute = new Hono().get("/", async (c) => {
+export const calendarRoute = new Hono()
+  .get("/pipeline", async (c) => {
+    const now = new Date();
+    const brands = await db.select().from(tables.brandProfiles);
+    const posts = await db.select().from(tables.posts);
+    const pipeline = brands.map((b) => ({
+      brandId: b.id,
+      name: b.name,
+      futureCount: posts.filter(
+        (p) =>
+          p.brandId === b.id &&
+          p.status !== "posted" &&
+          p.scheduledDate &&
+          p.scheduledDate > now,
+      ).length,
+      target: PIPELINE_TARGET,
+    }));
+    return c.json({ pipeline });
+  })
+  .get("/", async (c) => {
   const month = c.req.query("month") ?? dateKey(new Date()).slice(0, 7);
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
     return c.json({ error: "month skal være YYYY-MM" }, 400);
