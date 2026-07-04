@@ -151,3 +151,4 @@ vite.config.ts.timestamp-*
 
 # lokal dev-database (libSQL-fil)
 .data/
+.lens-prod-state.json
