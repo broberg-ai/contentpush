@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import { getCookie } from "hono/cookie";
 import { darkSecrets, env } from "./env";
+import { authRoute, isAuthed } from "./routes/auth";
 import { generateRoute } from "./routes/generate";
 import { brandsRoute } from "./routes/brands";
 import { libraryRoute } from "./routes/library";
@@ -35,6 +37,23 @@ const app = new Hono();
 app.get("/api/health", (c) =>
   c.json({ ok: true, service: "contentpush" }),
 );
+
+app.route("/api/auth", authRoute);
+
+// F011.2: nøgle-gate på ALT API undtagen health, login/status og cron-hook
+// (cron har sin egen CRON_HOOK_SECRET-check). Usat nøgle = inaktiv (dev).
+const OPEN_PATHS = new Set([
+  "/api/health",
+  "/api/auth/login",
+  "/api/auth/status",
+  "/api/cron/tick",
+]);
+app.use("/api/*", async (c, next) => {
+  if (!env.DASHBOARD_ACCESS_KEY) return next();
+  if (OPEN_PATHS.has(new URL(c.req.url).pathname)) return next();
+  if (isAuthed(getCookie(c, "cp_session"))) return next();
+  return c.json({ error: "Login påkrævet" }, 401);
+});
 
 app.route("/api/generate", generateRoute);
 app.route("/api/brands", brandsRoute);

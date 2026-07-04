@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { init as initUpmetrics } from "@upmetrics/sdk";
 import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
@@ -8,6 +8,7 @@ import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
 import { NextFive } from "./components/NextFive";
 import { StoryDetail } from "./components/StoryDetail";
+import { LoginGate } from "./components/LoginGate";
 import "./styles/tokens.css";
 import "./styles/app.css";
 
@@ -23,6 +24,27 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   // F012.1: kalenderen er forsiden; kø-viewet består som sekundær visning
   const [view, setView] = useState<"calendar" | "queue">("calendar");
+  // F011.2: nøgle-gate — null = tjekker, false = login kræves
+  const [authed, setAuthed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/status")
+      .then((r) => r.json())
+      .then(({ authed }: { authed: boolean }) => setAuthed(authed))
+      .catch(() => setAuthed(true)); // ved API-nedbrud: vis appen (fejler selv)
+  }, []);
+
+  if (authed === null) return null;
+  if (!authed) {
+    return (
+      <LoginGate
+        onAuthed={() => {
+          setAuthed(true);
+          setRefreshKey((k) => k + 1);
+        }}
+      />
+    );
+  }
 
   return (
     <div class="app-shell" data-testid="app-root">

@@ -30,6 +30,8 @@ export const env = parseEnv(
     CRONJOBS_API_TOKEN: z.string().min(1).optional(),
     APP_PUBLIC_URL: z.string().url().optional(),
     CRON_HOOK_SECRET: z.string().min(1).optional(),
+    // F011.2: adgangsnøgle til dashboardet (usat = gate inaktiv, lokal dev)
+    DASHBOARD_ACCESS_KEY: z.string().min(1).optional(),
   }),
 );
 
