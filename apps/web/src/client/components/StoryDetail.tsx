@@ -179,6 +179,43 @@ export function StoryDetail({
     }
   }
 
+  // F012.6: kopiér platformens tekst + hashtags — hurtigere end zip når man
+  // står i LinkedIn. Hashtags på egen blok efter dobbelt linjeskift.
+  async function copyPlatform(key: string, field: keyof Post, label: string) {
+    setState({ running: `copy-${key}`, message: null, error: null });
+    try {
+      const text = [
+        post[field] as string,
+        (post.hashtags?.[key] ?? []).join(" "),
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // Fallback (ældre browsere / manglende clipboard-permission):
+        // skjult textarea + execCommand — samme resultat, bredere støtte
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        ta.remove();
+        if (!ok) throw new Error("clipboard ikke tilgængelig");
+      }
+      setState({ running: null, message: `${label}-tekst kopieret`, error: null });
+    } catch (err) {
+      setState({
+        running: null,
+        message: null,
+        error: `Kunne ikke kopiere: ${err instanceof Error ? err.message : err}`,
+      });
+    }
+  }
+
   async function regenerateImage() {
     setState({ running: "image", message: null, error: null });
     try {
@@ -368,6 +405,18 @@ export function StoryDetail({
             {state.running === "mark-posted" ? "Markerer…" : "Markér som postet"}
           </button>
         )}
+        {available.map(({ key, label, field }) => (
+          <button
+            key={key}
+            type="button"
+            class="btn-secondary"
+            data-testid={`post-copy-${key}-button`}
+            disabled={state.running !== null}
+            onClick={() => copyPlatform(key, field, label)}
+          >
+            {state.running === `copy-${key}` ? "Kopierer…" : `📋 ${label}`}
+          </button>
+        ))}
         {(post.status === "ready" || post.status === "posted") && (
           <button
             type="button"
