@@ -40,6 +40,27 @@ export const mediaLibrary = sqliteTable("media_library", {
     .$defaultFn(() => new Date()),
 });
 
+// F012.3: Idé-biblioteket — Christians rå idéer er generatorens råstof.
+// rawText gemmes VERBATIM og omskrives ALDRIG (mockup-kontrakt: "din idé,
+// som du skrev den"). Generatoren foretrækker ældste ubrugte idé for brandet.
+export const ideas = sqliteTable("ideas", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  brandId: text("brand_id").references(() => brandProfiles.id),
+  rawText: text("raw_text").notNull(),
+  status: text("status", {
+    enum: ["captured", "enriched", "planned", "used", "archived"],
+  })
+    .notNull()
+    .default("captured"),
+  suggestedDate: integer("suggested_date", { mode: "timestamp" }),
+  usedByPostId: text("used_by_post_id"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const posts = sqliteTable("posts", {
   id: text("id")
     .primaryKey()
@@ -58,6 +79,8 @@ export const posts = sqliteTable("posts", {
     enum: ["stock", "ai-generated", "video"],
   }),
   mediaId: text("media_id").references(() => mediaLibrary.id),
+  // F012.3: sporbarhed — hvilken idé storyen er bygget på (null = auto-headline)
+  ideaId: text("idea_id"),
   status: text("status", { enum: ["draft", "ready", "posted"] })
     .notNull()
     .default("draft"),

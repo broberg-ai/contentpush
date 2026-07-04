@@ -5,6 +5,7 @@ import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
 import { QueueBoard, type Post } from "./components/QueueBoard";
 import { CalendarView } from "./components/CalendarView";
+import { IdeaPanel } from "./components/IdeaPanel";
 import { PostDetail } from "./components/PostDetail";
 import "./styles/tokens.css";
 import "./styles/app.css";
@@ -47,7 +48,10 @@ function App() {
       </header>
       <main class="app-main" data-testid="app-main">
         {view === "calendar" ? (
-          <CalendarView refreshKey={refreshKey} onOpen={setOpenPost} />
+          <div class="calendar-layout">
+            <CalendarView refreshKey={refreshKey} onOpen={setOpenPost} />
+            <IdeaPanel refreshKey={refreshKey} />
+          </div>
         ) : (
           <>
             <QueueBoard

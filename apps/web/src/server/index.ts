@@ -7,6 +7,7 @@ import { cronHookRoute } from "./routes/cron-hook";
 import { postsRoute } from "./routes/posts";
 import { packageRoute } from "./routes/package";
 import { calendarRoute } from "./routes/calendar";
+import { ideasRoute } from "./routes/ideas";
 
 for (const [name, consequence] of darkSecrets()) {
   console.warn(`[ship-dark] ${name} ikke sat — ${consequence}`);
@@ -42,5 +43,6 @@ app.route("/api/cron", cronHookRoute);
 app.route("/api/posts", postsRoute);
 app.route("/api/posts", packageRoute);
 app.route("/api/calendar", calendarRoute);
+app.route("/api/ideas", ideasRoute);
 
 export default app;

@@ -28,6 +28,8 @@ export async function generatePostTexts(input: {
   companyContext?: string;
   brandVoice?: string;
   platforms?: string[];
+  /** F012.3: Christians rå idé-tekst — indgår VERBATIM og vinder over frie vinkler */
+  ideaText?: string;
 }): Promise<{ content: GeneratedContent; costUsd?: number }> {
   const platforms = (
     input.platforms?.length ? input.platforms : [...PLATFORMS]
@@ -35,6 +37,9 @@ export async function generatePostTexts(input: {
 
   const prompt = [
     "Du er en social media-tekstforfatter. Skriv opslag på dansk ud fra headline og brand-kontekst.",
+    input.ideaText
+      ? `Christians idé — byg opslaget på DEN (ordret, uredigeret): """${input.ideaText}"""`
+      : "",
     `Headline: ${input.headline}`,
     input.companyContext ? `Brand-kontekst: ${input.companyContext}` : "",
     input.brandVoice ? `Brand voice/tone: ${input.brandVoice}` : "",
@@ -44,7 +49,7 @@ export async function generatePostTexts(input: {
     "",
     "Svar KUN med gyldig JSON, intet andet — præcis dette format:",
     `{${platforms.map((p) => `"${p}": {"text": "…", "hashtags": ["#…"]}`).join(", ")}}`,
-    "hashtags-arrayet må ikke gentages inde i text.",
+    "VIGTIGT: skriv ALDRIG hashtags inde i text-feltet — de hører KUN hjemme i hashtags-arrayet.",
   ]
     .filter((line) => line !== "")
     .join("\n");

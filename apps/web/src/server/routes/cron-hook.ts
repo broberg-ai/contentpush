@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { ai } from "../lib/ai";
 import { db, tables } from "../db";
 import { env } from "../env";
@@ -42,6 +42,23 @@ async function suggestHeadline(
 
 type Brand = typeof tables.brandProfiles.$inferSelect;
 
+// F012.3: headline afledt af Christians idé (idéen er råstoffet, ikke AI'ens
+// egen opfindelse). Selve idé-teksten går desuden verbatim med i tekst-prompten.
+async function headlineFromIdea(brand: Brand, ideaText: string): Promise<string> {
+  const { text } = await ai.chat({
+    prompt: [
+      `Christians idé til et opslag for brandet "${brand.name}" (ordret): """${ideaText}"""`,
+      brand.brandVoice ? `Tone: ${brand.brandVoice}` : "",
+      "Foreslå ÉN kort, konkret dansk headline der bygger på PRÆCIS den idé.",
+      "Svar KUN med selve headline-teksten — ingen anførselstegn, ingen forklaring.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    tier: "cheap",
+  });
+  return text.trim().replace(/^["“]|["”]$/g, "");
+}
+
 // Fylder ét brands pipeline op til TARGET_BUFFER. Sekventiel inden for
 // brandet (dato-markøren lægger +interval i forlængelse — ingen kollision).
 async function fillBrand(brand: Brand, now: Date): Promise<void> {
@@ -65,14 +82,29 @@ async function fillBrand(brand: Brand, now: Date): Promise<void> {
   const usedHeadlines = brandPosts.slice(-8).map((p) => p.headline);
   const generated: string[] = [];
 
+  // F012.3: Christians idéer først — ældste ubrugte idé for brandet er
+  // råstoffet; kun når biblioteket er tomt opfinder AI'en selv en headline.
+  const unusedIdeas = await db
+    .select()
+    .from(tables.ideas)
+    .where(
+      and(
+        eq(tables.ideas.brandId, brand.id),
+        isNull(tables.ideas.usedByPostId),
+        ne(tables.ideas.status, "archived"),
+      ),
+    )
+    .orderBy(asc(tables.ideas.createdAt));
+
   for (let i = 0; i < missing; i++) {
     try {
-      const headline = await suggestHeadline(brand, [
-        ...usedHeadlines,
-        ...generated,
-      ]);
+      const idea = unusedIdeas.shift();
+      const headline = idea
+        ? await headlineFromIdea(brand, idea.rawText)
+        : await suggestHeadline(brand, [...usedHeadlines, ...generated]);
       const { content } = await generatePostTexts({
         headline,
+        ideaText: idea?.rawText,
         companyContext: brand.companyContext ?? undefined,
         brandVoice: brand.brandVoice ?? undefined,
         platforms: brand.platforms ?? undefined,
@@ -81,20 +113,30 @@ async function fillBrand(brand: Brand, now: Date): Promise<void> {
         ? addDays(cursor, brand.postingIntervalDays)
         : addDays(now, GENERATION_LEAD_DAYS);
       cursor = scheduledDate;
-      await db.insert(tables.posts).values({
-        brandId: brand.id,
-        headline,
-        linkedinText: content.linkedin?.text,
-        instagramText: content.instagram?.text,
-        facebookText: content.facebook?.text,
-        hashtags: Object.fromEntries(
-          Object.entries(content).map(([p, v]) => [p, v.hashtags]),
-        ),
-        scheduledDate,
-      });
+      const [post] = await db
+        .insert(tables.posts)
+        .values({
+          brandId: brand.id,
+          headline,
+          ideaId: idea?.id,
+          linkedinText: content.linkedin?.text,
+          instagramText: content.instagram?.text,
+          facebookText: content.facebook?.text,
+          hashtags: Object.fromEntries(
+            Object.entries(content).map(([p, v]) => [p, v.hashtags]),
+          ),
+          scheduledDate,
+        })
+        .returning();
+      if (idea) {
+        await db
+          .update(tables.ideas)
+          .set({ status: "used", usedByPostId: post.id })
+          .where(eq(tables.ideas.id, idea.id));
+      }
       generated.push(headline);
       console.log(
-        `[pipeline] ${brand.name}: +"${headline}" → ${scheduledDate.toISOString().slice(0, 10)} (${future.length + generated.length}/${TARGET_BUFFER})`,
+        `[pipeline] ${brand.name}: +"${headline}"${idea ? " (fra idé)" : ""} → ${scheduledDate.toISOString().slice(0, 10)} (${future.length + generated.length}/${TARGET_BUFFER})`,
       );
     } catch (err) {
       // Ship-dark: én fejl (fx manglende AI-nøgle) vælter ikke resten —

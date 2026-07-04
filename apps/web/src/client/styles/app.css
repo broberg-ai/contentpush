@@ -103,6 +103,121 @@ h3 {
   border-color: var(--foreground);
 }
 
+/* Kalender-layout (F012.3): kalender + idé-skinne, jf. mockuppens rail */
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .calendar-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Idé-biblioteket (F012.3) */
+.idea-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+
+.idea-panel h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.idea-form textarea {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.82rem;
+  resize: vertical;
+}
+
+.idea-form textarea:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.idea-form-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.idea-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.idea-item {
+  border-top: 1px solid var(--border);
+  padding: 0.55rem 0;
+}
+
+.idea-text {
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.idea-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.idea-brand {
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+}
+
+.idea-status {
+  font-size: 0.58rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  color: var(--muted-foreground);
+}
+
+.idea-status-used {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.idea-archive {
+  margin-left: auto;
+  min-width: 28px;
+  min-height: 28px;
+  border: none;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 120ms;
+}
+
+.idea-archive:hover {
+  background: var(--muted);
+}
+
+.idea-archive:active {
+  background: var(--accent);
+}
+
 /* Pipeline-status (F012.2) — n/5 per brand, jf. mockuppens .pipes */
 .pipeline-row {
   display: grid;
