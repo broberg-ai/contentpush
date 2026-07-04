@@ -179,6 +179,24 @@ export function StoryDetail({
     }
   }
 
+  async function regenerateImage() {
+    setState({ running: "image", message: null, error: null });
+    try {
+      const res = await fetch(`/api/posts/${post.id}/regenerate-image`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      setState({ running: null, message: "Nyt billede er klar", error: null });
+      setPost((p) => ({ ...p, ...body.post }));
+      onChanged({ ...post, ...body.post });
+    } catch (err) {
+      setState({
+        running: null,
+        message: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   async function runAction(action: "approve" | "regenerate" | "mark-posted", doneMessage: string) {
     setState({ running: action, message: null, error: null });
     try {
@@ -242,6 +260,26 @@ export function StoryDetail({
           {activeKey === "linkedin" && <LinkedInPreview post={post} />}
           {activeKey === "instagram" && <InstagramPreview post={post} />}
           {activeKey === "facebook" && <FacebookPreview post={post} />}
+          <div class="media-actions">
+            <button
+              type="button"
+              class="btn-secondary"
+              data-testid="post-regenerate-image-button"
+              disabled={state.running !== null}
+              onClick={regenerateImage}
+            >
+              {state.running === "image"
+                ? "Genererer billede…"
+                : post.gridUrl
+                  ? "↻ Regenerér billede"
+                  : "Generér billede"}
+            </button>
+            <span class="media-actions-note">
+              {post.gridUrl
+                ? "Gammelt billede bevares i biblioteket"
+                : "Storyen mangler sit billede"}
+            </span>
+          </div>
         </div>
 
         <aside class="sheet-side">

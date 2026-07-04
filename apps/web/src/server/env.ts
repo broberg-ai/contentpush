@@ -14,6 +14,10 @@ export const env = parseEnv(
     CONTENTPUSH_TURSO_TOKEN: z.string().min(1).optional(),
     DISCORD_WEBHOOK_URL: z.string().url().optional(),
     MISTRAL_API_KEY: z.string().min(1).optional(),
+    // fal — brand-billeder (INGEN persondata/ansigter i prompt ⇒ GDPR-ok uden EU-krav).
+    // BFL (EU, Paris) er PORTRÆT-vejen (Christians likeness, F009.3) — kun reference/finetune.
+    FAL_KEY: z.string().min(1).optional(),
+    BFL_API_KEY: z.string().min(1).optional(),
     UPMETRICS_API_KEY: z.string().min(1).optional(),
     UPMETRICS_DSN: z.string().url().optional(),
     // CONTENTPUSH_-præfiks: generiske R2_*-vars lækker fra det arvede miljø
@@ -35,6 +39,7 @@ export function darkSecrets(): Array<[name: string, consequence: string]> {
     ["CONTENTPUSH_TURSO_URL", env.CONTENTPUSH_TURSO_URL, "kører på lokal fil-DB (dev)"],
     ["DISCORD_WEBHOOK_URL", env.DISCORD_WEBHOOK_URL, "notifikationer springes over"],
     ["MISTRAL_API_KEY", env.MISTRAL_API_KEY, "AI-tekstgenerering svarer 503"],
+    ["FAL_KEY", env.FAL_KEY, "billed-generering springes over (stories får imagePending)"],
     ["UPMETRICS_API_KEY", env.UPMETRICS_API_KEY, "AI-cost logges ikke til upmetrics"],
     ["UPMETRICS_DSN", env.UPMETRICS_DSN, "runtime-fejl fanges ikke af upmetrics"],
     ["CONTENTPUSH_R2_ACCESS_KEY_ID", env.CONTENTPUSH_R2_ACCESS_KEY_ID, "media-upload svarer 503 (mangler R2-creds)"],

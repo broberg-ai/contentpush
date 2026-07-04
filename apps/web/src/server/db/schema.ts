@@ -81,6 +81,8 @@ export const posts = sqliteTable("posts", {
   mediaId: text("media_id").references(() => mediaLibrary.id),
   // F012.3: sporbarhed — hvilken idé storyen er bygget på (null = auto-headline)
   ideaId: text("idea_id"),
+  // F012.4: billed-generering fejlede/mangler — storyen lever, billedet kan regenereres
+  imagePending: integer("image_pending", { mode: "boolean" }).notNull().default(false),
   status: text("status", { enum: ["draft", "ready", "posted"] })
     .notNull()
     .default("draft"),

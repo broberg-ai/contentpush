@@ -6,6 +6,7 @@ import { BrandSettings } from "./components/BrandSettings";
 import { QueueBoard, type Post } from "./components/QueueBoard";
 import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
+import { NextFive } from "./components/NextFive";
 import { StoryDetail } from "./components/StoryDetail";
 import "./styles/tokens.css";
 import "./styles/app.css";
@@ -60,7 +61,10 @@ function App() {
         ) : view === "calendar" ? (
           <div class="calendar-layout">
             <CalendarView refreshKey={refreshKey} onOpen={setOpenPost} />
-            <IdeaPanel refreshKey={refreshKey} />
+            <div class="calendar-rail">
+              <NextFive refreshKey={refreshKey} onOpen={setOpenPost} />
+              <IdeaPanel refreshKey={refreshKey} />
+            </div>
           </div>
         ) : (
           <>

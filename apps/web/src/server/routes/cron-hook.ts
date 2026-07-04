@@ -4,6 +4,7 @@ import { ai } from "../lib/ai";
 import { db, tables } from "../db";
 import { env } from "../env";
 import { generatePostTexts } from "./generate";
+import { generateStoryImage, imageAvailable } from "../lib/images";
 import { notifyDraftReady, notifyTimeToPost } from "../lib/notify";
 
 // F012.2: pipelinen holder altid ≥TARGET_BUFFER fremtidige stories per brand.
@@ -133,6 +134,24 @@ async function fillBrand(brand: Brand, now: Date): Promise<void> {
           .update(tables.ideas)
           .set({ status: "used", usedByPostId: post.id })
           .where(eq(tables.ideas.id, idea.id));
+      }
+      // F012.4: on-brand billede på HVER story — fejl vælter ALDRIG storyen
+      try {
+        if (!imageAvailable()) throw new Error("billed-lag ikke konfigureret");
+        const { mediaId, costUsd } = await generateStoryImage(brand, headline);
+        await db
+          .update(tables.posts)
+          .set({ mediaId, mediaType: "ai-generated", imagePending: false })
+          .where(eq(tables.posts.id, post.id));
+        console.log(`[image] ${brand.name}: billede klar ($${costUsd ?? "?"})`);
+      } catch (err) {
+        await db
+          .update(tables.posts)
+          .set({ imagePending: true })
+          .where(eq(tables.posts.id, post.id));
+        console.warn(
+          `[image] ${brand.name}: billede fejlede (storyen lever, regenerér fra UI) — ${err instanceof Error ? err.message : err}`,
+        );
       }
       generated.push(headline);
       console.log(

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { desc, eq } from "drizzle-orm";
 import { db, tables } from "../db";
 import { media, variantKey } from "../lib/media";
+import { generateStoryImage } from "../lib/images";
 import { generatePostTexts } from "./generate";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -98,6 +99,39 @@ export const postsRoute = new Hono()
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return c.json({ error: `Regenerering fejlede: ${message}` }, 503);
+    }
+  })
+  // F012.4: regenerér billedet — gammelt billede bevares i media_library
+  .post("/:id/regenerate-image", async (c) => {
+    const [post] = await db
+      .select()
+      .from(tables.posts)
+      .where(eq(tables.posts.id, c.req.param("id")));
+    if (!post) return c.json({ error: "Ukendt post" }, 404);
+    const [brand] = await db
+      .select()
+      .from(tables.brandProfiles)
+      .where(eq(tables.brandProfiles.id, post.brandId));
+    if (!brand) return c.json({ error: "Ukendt brand" }, 404);
+    try {
+      const { mediaId } = await generateStoryImage(brand, post.headline);
+      const [updated] = await db
+        .update(tables.posts)
+        .set({ mediaId, mediaType: "ai-generated", imagePending: false })
+        .where(eq(tables.posts.id, post.id))
+        .returning();
+      const [item] = await db
+        .select()
+        .from(tables.mediaLibrary)
+        .where(eq(tables.mediaLibrary.id, mediaId));
+      const gridUrl =
+        item && media
+          ? await media.signedUrl(variantKey(item.url, "grid", "image/webp"))
+          : null;
+      return c.json({ post: { ...updated, gridUrl } });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: `Billed-generering fejlede: ${message}` }, 503);
     }
   })
   .post("/:id/mark-posted", async (c) => {

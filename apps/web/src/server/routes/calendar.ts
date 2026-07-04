@@ -16,6 +16,36 @@ const PIPELINE_TARGET = 5;
 
 // F012.1: månedens posts grupperet pr. dato, med brandName + thumb-URL.
 export const calendarRoute = new Hono()
+  // F012.4: "Næste 5" — de nærmeste kommende stories på tværs af brands
+  .get("/next", async (c) => {
+    const now = new Date();
+    const rows = await db
+      .select({
+        post: tables.posts,
+        brandName: tables.brandProfiles.name,
+        mediaUrl: tables.mediaLibrary.url,
+      })
+      .from(tables.posts)
+      .leftJoin(
+        tables.brandProfiles,
+        eq(tables.posts.brandId, tables.brandProfiles.id),
+      )
+      .leftJoin(tables.mediaLibrary, eq(tables.posts.mediaId, tables.mediaLibrary.id))
+      .where(gte(tables.posts.scheduledDate, now))
+      .orderBy(asc(tables.posts.scheduledDate));
+    const upcoming = rows.filter(({ post }) => post.status !== "posted").slice(0, 5);
+    const next = await Promise.all(
+      upcoming.map(async ({ post, brandName, mediaUrl }) => ({
+        ...post,
+        brandName,
+        thumbUrl:
+          mediaUrl && media
+            ? await media.signedUrl(variantKey(mediaUrl, "thumb", "image/webp"))
+            : null,
+      })),
+    );
+    return c.json({ next });
+  })
   .get("/pipeline", async (c) => {
     const now = new Date();
     const brands = await db.select().from(tables.brandProfiles);

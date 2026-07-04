@@ -1,0 +1,1 @@
+ALTER TABLE `posts` ADD `image_pending` integer DEFAULT false NOT NULL;
