@@ -1,4 +1,4 @@
-# Contentpush v5 — SOTA SoMe Content-apparat (KONCEPT, afventer Christians endelige nik)
+# Contentpush v5 — SOTA SoMe Content-apparat (GODKENDT 2026-07-04 — bølgerne er på boardet)
 
 > 2026-07-03: Christian så v1-skelettet (Plan v4's P1–P5) og sagde fra: *"jeg vil have et SOTA SoMe Content Push apparat — en kalender med de næste minimum 5 forberedte stories — image content — små videoer — et årshjul for alle mine online marketing aktiviteter"* og *"start HELT forfra idémæssigt"*.
 > 2026-07-04: Christians konsoliderings-dokument med konkurrentanalyse (Hootsuite/Buffer/Meta) er flettet ind — kilde bevaret i `docs/PLAN-v5-input-konsolidering-og-konkurrentanalyse.md`.
@@ -85,9 +85,9 @@ AI-tekst i brand-voice (Mistral) · billede/video-generering (ai-sdk F033: Recra
 | Bølge | Indhold | Bygger på |
 |---|---|---|
 | **1. Kalenderen + fyldt pipeline** | Kalender-view (mockup→build), ≥5-buffer per brand, billede på HVER story, **platform-tro preview i review**, **idé-bibliotek** (indbakke der føder generatoren), kopiér-til-udklipsholder | F012 (re-scopes), F003.3, ai-sdk F033 |
-| **2. Årshjulet + timing** | Aktivitets-model + årshjuls-view, aktivitet→story-generering, mærkedage (undgå/udnyt) + tidsvinduer per platform×brand | F015 (ny) |
-| **3. Video + polish** | Korte videoer (ai.video, spike først), SOTA-finish | F014 (ny) |
-| **4. Nyhedsbrev + mailingliste** | Nyhedsbrevs-composer (populeret af periodens stories), udsendelse via @broberg/mail, evt. egen mailingliste (signup-widget, double opt-in, EU-lagring) — placering i rækkefølgen afventer Christians prioritering | F016 (ny) |
+| **2. Årshjulet + timing** | Aktivitets-model + årshjuls-view, aktivitet→story-generering, mærkedage (undgå/udnyt) + tidsvinduer per platform×brand | F013 |
+| **3. Video + polish** | Korte videoer (ai.video, spike først), SOTA-finish | F014 |
+| **4. Nyhedsbrev + mailingliste** | Nyhedsbrevs-composer (populeret af periodens stories), udsendelse via @broberg/mail, evt. egen mailingliste (signup-widget, double opt-in, EU-lagring) — placering i rækkefølgen afventer Christians prioritering | F015 |
 | Sideløbende | Deploy (F011 — GO givet, holdt til konceptnik), F009 brand-scoping, F010 Discovery-consumer | eksisterende |
 
 ## Åbne spørgsmål til Christian
