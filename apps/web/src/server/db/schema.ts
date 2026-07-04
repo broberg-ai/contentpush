@@ -20,6 +20,18 @@ export const brandProfiles = sqliteTable("brand_profiles", {
     .notNull()
     .default("brand-only"),
   loraId: text("lora_id"),
+  // F010.1: AutoDoc-kladder. 'draft' = foreslået profil fra discovery —
+  // aktiveres ALDRIG automatisk (Christians godkendelse i F010.2 flipper den).
+  // Generering/tick arbejder KUN på 'active'.
+  status: text("status", { enum: ["active", "draft"] })
+    .notNull()
+    .default("active"),
+  // Hvilket aktivt brand kladden foreslår en opdatering af (null = nyt target)
+  sourceBrandId: text("source_brand_id"),
+  autodocSlug: text("autodoc_slug"),
+  // Rå brand_signals fra AutoDoc gemmes VERBATIM (projiceres i generator-prompt)
+  brandSignals: text("brand_signals", { mode: "json" }),
+  analyzedAt: integer("analyzed_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

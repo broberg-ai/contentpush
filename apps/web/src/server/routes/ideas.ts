@@ -10,7 +10,10 @@ import { db, tables } from "../db";
 async function suggestBrand(
   rawText: string,
 ): Promise<{ brandId: string | null; enriched: boolean }> {
-  const brands = await db.select().from(tables.brandProfiles);
+  const brands = await db
+    .select()
+    .from(tables.brandProfiles)
+    .where(eq(tables.brandProfiles.status, "active"));
   if (!brands.length) return { brandId: null, enriched: false };
   try {
     const { text } = await ai.chat({

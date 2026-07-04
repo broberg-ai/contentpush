@@ -32,6 +32,10 @@ export const env = parseEnv(
     CRON_HOOK_SECRET: z.string().min(1).optional(),
     // F011.2: adgangsnøgle til dashboardet (usat = gate inaktiv, lokal dev)
     DASHBOARD_ACCESS_KEY: z.string().min(1).optional(),
+    // F010.1: AutoDoc consumer-tokens (per-projekt bearer, read-only, ship-dark)
+    AUTODOC_KEY_BROBERG_AI: z.string().min(1).optional(),
+    AUTODOC_KEY_CARDMEM_COM: z.string().min(1).optional(),
+    AUTODOC_KEY_TRAILMEM_COM: z.string().min(1).optional(),
   }),
 );
 

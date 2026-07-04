@@ -195,7 +195,10 @@ export const cronHookRoute = new Hono().post("/tick", async (c) => {
   }
 
   const now = new Date();
-  const brands = await db.select().from(tables.brandProfiles);
+  const brands = await db
+    .select()
+    .from(tables.brandProfiles)
+    .where(eq(tables.brandProfiles.status, "active"));
   const posts = await db.select().from(tables.posts);
 
   // "Tid til at poste i dag" for godkendte posts med scheduledDate i dag

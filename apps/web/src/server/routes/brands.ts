@@ -25,8 +25,13 @@ const trainSchema = z.object({
 });
 
 export const brandsRoute = new Hono()
+  // F010.1: default = kun aktive (kladder er F010.2's review-flade: ?status=draft)
   .get("/", async (c) => {
-    const brands = await db.select().from(tables.brandProfiles);
+    const status = c.req.query("status") === "draft" ? "draft" : "active";
+    const brands = await db
+      .select()
+      .from(tables.brandProfiles)
+      .where(eq(tables.brandProfiles.status, status));
     return c.json({ brands });
   })
   .patch("/:id", async (c) => {

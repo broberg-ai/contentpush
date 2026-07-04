@@ -48,7 +48,10 @@ export const calendarRoute = new Hono()
   })
   .get("/pipeline", async (c) => {
     const now = new Date();
-    const brands = await db.select().from(tables.brandProfiles);
+    const brands = await db
+    .select()
+    .from(tables.brandProfiles)
+    .where(eq(tables.brandProfiles.status, "active"));
     const posts = await db.select().from(tables.posts);
     const pipeline = brands.map((b) => ({
       brandId: b.id,
