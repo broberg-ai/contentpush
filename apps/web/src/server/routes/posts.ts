@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { desc, eq } from "drizzle-orm";
 import { db, tables } from "../db";
+import { media, variantKey } from "../lib/media";
 import { generatePostTexts } from "./generate";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -17,6 +18,38 @@ export const postsRoute = new Hono()
       .orderBy(desc(tables.posts.createdAt));
     return c.json({
       posts: rows.map(({ post, brandName }) => ({ ...post, brandName })),
+    });
+  })
+  // F012.5: fuld detalje til sheet-visningen — brandName, idé-tekst (sporbarhed)
+  // og signerede billed-URL'er i ét svar
+  .get("/:id", async (c) => {
+    const [row] = await db
+      .select({
+        post: tables.posts,
+        brandName: tables.brandProfiles.name,
+        mediaUrl: tables.mediaLibrary.url,
+        ideaText: tables.ideas.rawText,
+      })
+      .from(tables.posts)
+      .leftJoin(
+        tables.brandProfiles,
+        eq(tables.posts.brandId, tables.brandProfiles.id),
+      )
+      .leftJoin(tables.mediaLibrary, eq(tables.posts.mediaId, tables.mediaLibrary.id))
+      .leftJoin(tables.ideas, eq(tables.posts.ideaId, tables.ideas.id))
+      .where(eq(tables.posts.id, c.req.param("id")));
+    if (!row) return c.json({ error: "Ukendt post" }, 404);
+    const gridUrl =
+      row.mediaUrl && media
+        ? await media.signedUrl(variantKey(row.mediaUrl, "grid", "image/webp"))
+        : null;
+    return c.json({
+      post: {
+        ...row.post,
+        brandName: row.brandName,
+        ideaText: row.ideaText,
+        gridUrl,
+      },
     });
   })
   // F005.2: godkend (draft → ready)

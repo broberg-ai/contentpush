@@ -6,7 +6,7 @@ import { BrandSettings } from "./components/BrandSettings";
 import { QueueBoard, type Post } from "./components/QueueBoard";
 import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
-import { PostDetail } from "./components/PostDetail";
+import { StoryDetail } from "./components/StoryDetail";
 import "./styles/tokens.css";
 import "./styles/app.css";
 
@@ -47,7 +47,17 @@ function App() {
         </nav>
       </header>
       <main class="app-main" data-testid="app-main">
-        {view === "calendar" ? (
+        {openPost ? (
+          // F012.5: story-detaljen er en FULD sheet-visning, ikke en modal
+          <StoryDetail
+            post={openPost}
+            onClose={() => setOpenPost(null)}
+            onChanged={(updated) => {
+              setOpenPost(updated);
+              setRefreshKey((k) => k + 1);
+            }}
+          />
+        ) : view === "calendar" ? (
           <div class="calendar-layout">
             <CalendarView refreshKey={refreshKey} onOpen={setOpenPost} />
             <IdeaPanel refreshKey={refreshKey} />
@@ -63,16 +73,6 @@ function App() {
           </>
         )}
       </main>
-      {openPost && (
-        <PostDetail
-          post={openPost}
-          onClose={() => setOpenPost(null)}
-          onChanged={(updated) => {
-            setOpenPost(updated);
-            setRefreshKey((k) => k + 1);
-          }}
-        />
-      )}
     </div>
   );
 }
