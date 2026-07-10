@@ -92,6 +92,10 @@ export const generateRoute = new Hono().post("/", async (c) => {
       .from(tables.brandProfiles)
       .where(eq(tables.brandProfiles.id, brandId));
     if (!brand) return c.json({ error: "Ukendt brandId" }, 404);
+    // F010.2: en ikke-godkendt kladde kan ALDRIG bruges til nye posts
+    if (brand.status === "draft") {
+      return c.json({ error: "Kladde-profil skal godkendes før den kan bruges" }, 409);
+    }
   }
 
   try {

@@ -740,6 +740,170 @@ h3 {
   font-weight: 600;
 }
 
+/* Brand-kladder (F010.2) — gennemsyn + godkendelse af AutoDoc-forslag */
+.brand-drafts {
+  margin-top: 1.5rem;
+}
+
+.drafts-sub {
+  margin: 0 0 1rem;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+.draft-target {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.9rem;
+  background: var(--card);
+}
+
+.draft-target-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.draft-target-head strong {
+  font-size: 1rem;
+}
+
+.draft-badge {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.draft-badge.muted {
+  color: var(--destructive);
+}
+
+.draft-target-head .btn-secondary {
+  margin-left: auto;
+}
+
+.draft-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 1rem;
+  margin-top: 0.9rem;
+}
+
+.draft-fields label,
+.draft-field-label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+
+.draft-fields input[type="text"],
+.draft-fields input[type="number"],
+.draft-fields textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  resize: vertical;
+}
+
+.draft-fields input:focus-visible,
+.draft-fields textarea:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.draft-interval input {
+  max-width: 120px;
+}
+
+.platform-toggles {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.platform-toggle {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 120ms;
+}
+
+.platform-toggle:hover {
+  border-color: var(--ring);
+}
+
+.platform-toggle:active {
+  filter: brightness(0.94);
+}
+
+.platform-toggle.on {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+.draft-source {
+  border-left: 3px solid var(--primary);
+  padding: 0.4rem 0 0.4rem 0.9rem;
+  font-size: 0.82rem;
+  color: var(--muted-foreground);
+}
+
+.draft-source h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--foreground);
+}
+
+.draft-source p {
+  margin: 0 0 0.5rem;
+}
+
+.draft-source .source-summary {
+  font-style: italic;
+}
+
+.source-cues {
+  margin: 0 0 0.5rem;
+  padding-left: 1rem;
+}
+
+.source-cues li {
+  margin-bottom: 0.25rem;
+}
+
+.draft-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 720px) {
+  .draft-body {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Brand-stil (F003.3) — LoRA-træning fra bibliotekets brand-billeder */
 .brand-style {
   margin-top: 1.25rem;

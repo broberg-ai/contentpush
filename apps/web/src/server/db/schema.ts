@@ -31,6 +31,8 @@ export const brandProfiles = sqliteTable("brand_profiles", {
   autodocSlug: text("autodoc_slug"),
   // Rå brand_signals fra AutoDoc gemmes VERBATIM (projiceres i generator-prompt)
   brandSignals: text("brand_signals", { mode: "json" }),
+  // F010.2: grounding (produktnavn/README-summary/site) = berigelses-kilden vist i review
+  grounding: text("grounding", { mode: "json" }),
   analyzedAt: integer("analyzed_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

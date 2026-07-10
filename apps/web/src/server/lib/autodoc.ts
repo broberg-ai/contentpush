@@ -121,6 +121,7 @@ export async function importBrandDraft(slug: string) {
     sourceBrandId: sourceBrand?.id ?? null,
     autodocSlug: slug,
     brandSignals: model.brandSignals,
+    grounding: model.grounding,
     analyzedAt: new Date(model.analyzedAt),
   };
 

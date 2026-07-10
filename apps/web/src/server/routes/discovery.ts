@@ -13,6 +13,17 @@ const importSchema = z.object({
   slug: z.string().min(1),
 });
 
+// F010.2: godkendelse — Christians redigerede felter påføres profilen.
+// Først HER bliver en profil aktiv (aldrig automatisk).
+const approveSchema = z.object({
+  name: z.string().min(1),
+  siteUrl: z.string().nullable().optional(),
+  companyContext: z.string().nullable().optional(),
+  brandVoice: z.string().nullable().optional(),
+  platforms: z.array(z.string()).nullable().optional(),
+  postingIntervalDays: z.number().int().positive(),
+});
+
 export const discoveryRoute = new Hono()
   .get("/targets", async (c) => {
     const drafts = await db
@@ -25,8 +36,7 @@ export const discoveryRoute = new Hono()
         slug: t.slug,
         brandName: t.brandName,
         configured: autodocConfigured(t.slug),
-        draftId: draft?.id ?? null,
-        analyzedAt: draft?.analyzedAt ?? null,
+        draft: draft ?? null,
       };
     });
     return c.json({ targets });
@@ -50,6 +60,60 @@ export const discoveryRoute = new Hono()
       const message = err instanceof Error ? err.message : String(err);
       return c.json({ error: message }, 502);
     }
+  })
+  // F010.2: godkend en kladde → aktiv. Har kladden en source (eksisterende
+  // aktivt brand) opdateres DET brand med de godkendte felter og kladden
+  // slettes; ellers promoveres kladden selv til aktiv. Idempotent-sikker:
+  // godkendelse er den ENESTE vej fra draft → active.
+  .post("/drafts/:id/approve", async (c) => {
+    const body = approveSchema.safeParse(await c.req.json().catch(() => null));
+    if (!body.success) {
+      return c.json({ error: "Ugyldig body", details: body.error.flatten() }, 400);
+    }
+    const [draft] = await db
+      .select()
+      .from(tables.brandProfiles)
+      .where(
+        and(
+          eq(tables.brandProfiles.id, c.req.param("id")),
+          eq(tables.brandProfiles.status, "draft"),
+        ),
+      );
+    if (!draft) return c.json({ error: "Ukendt kladde" }, 404);
+
+    const fields = {
+      name: body.data.name,
+      siteUrl: body.data.siteUrl ?? null,
+      companyContext: body.data.companyContext ?? null,
+      brandVoice: body.data.brandVoice ?? null,
+      platforms: body.data.platforms ?? null,
+      postingIntervalDays: body.data.postingIntervalDays,
+    };
+
+    if (draft.sourceBrandId) {
+      const [active] = await db
+        .update(tables.brandProfiles)
+        .set(fields)
+        .where(
+          and(
+            eq(tables.brandProfiles.id, draft.sourceBrandId),
+            eq(tables.brandProfiles.status, "active"),
+          ),
+        )
+        .returning();
+      if (active) {
+        await db.delete(tables.brandProfiles).where(eq(tables.brandProfiles.id, draft.id));
+        return c.json({ brand: active, mode: "updated-existing" });
+      }
+      // source forsvandt → fald tilbage til promovering
+    }
+
+    const [active] = await db
+      .update(tables.brandProfiles)
+      .set({ ...fields, status: "active", sourceBrandId: null })
+      .where(eq(tables.brandProfiles.id, draft.id))
+      .returning();
+    return c.json({ brand: active, mode: "promoted" });
   })
   // Kladde-oprydning (aldrig aktive): slet en draft-profil igen
   .delete("/drafts/:id", async (c) => {

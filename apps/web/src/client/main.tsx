@@ -3,6 +3,7 @@ import { useEffect, useState } from "preact/hooks";
 import { init as initUpmetrics } from "@upmetrics/sdk";
 import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
+import { BrandDrafts } from "./components/BrandDrafts";
 import { QueueBoard, type Post } from "./components/QueueBoard";
 import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
@@ -95,6 +96,7 @@ function App() {
               refreshKey={refreshKey}
               onOpen={setOpenPost}
             />
+            <BrandDrafts onChanged={() => setRefreshKey((k) => k + 1)} />
             <BrandSettings />
           </>
         )}
