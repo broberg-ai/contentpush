@@ -25,16 +25,16 @@ export function BrandSettings({ onChanged }: { onChanged?: () => void }) {
   const [newBrand, setNewBrand] = useState({ ...EMPTY_NEW });
   const [createState, setCreateState] = useState<SaveState>("idle");
 
-  function load(selectAfter?: string | null) {
+  // KUN til initial mount. Selektion efter create/save/archive drives
+  // OPTIMISTISK fra API-svaret (ikke en re-fetch) — Turso read-after-write-lag
+  // gjorde ellers at en netop-oprettet række manglede i listen → selektionen
+  // faldt tilbage til brands[0] → arkivér/gem ramte det FORKERTE brand.
+  function load() {
     return fetch("/api/brands")
       .then((r) => r.json())
       .then(({ brands }: { brands: Brand[] }) => {
         setBrands(brands);
-        const pick =
-          selectAfter !== undefined
-            ? brands.find((b) => b.id === selectAfter) ?? brands[0]
-            : brands.find((b) => b.id === selectedId) ?? brands[0];
-        if (pick) selectBrand(pick);
+        if (brands.length) selectBrand(brands[0]);
         else {
           setSelectedId(null);
           setDraft(null);
@@ -43,7 +43,7 @@ export function BrandSettings({ onChanged }: { onChanged?: () => void }) {
   }
 
   useEffect(() => {
-    load(undefined);
+    load();
   }, []);
 
   function selectBrand(brand: Brand) {
@@ -79,7 +79,10 @@ export function BrandSettings({ onChanged }: { onChanged?: () => void }) {
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await load(draft.id);
+      const { brand: updated } = (await res.json()) as { brand: Brand };
+      // Optimistisk: brug PATCH-svaret, ikke en re-fetch (undgå lag-mis-select)
+      setBrands((all) => all.map((b) => (b.id === updated.id ? updated : b)));
+      selectBrand(updated);
       setSaveState("saved");
       onChanged?.();
       setTimeout(() => setSaveState("idle"), 2500);
@@ -90,11 +93,19 @@ export function BrandSettings({ onChanged }: { onChanged?: () => void }) {
 
   async function archive() {
     if (!draft) return;
+    const archivedId = draft.id;
     setSaveState("saving");
     try {
-      const res = await fetch(`/api/brands/${draft.id}/archive`, { method: "POST" });
+      const res = await fetch(`/api/brands/${archivedId}/archive`, { method: "POST" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await load(null);
+      // Optimistisk: fjern det arkiverede brand fra listen + vælg næste
+      const remaining = brands.filter((b) => b.id !== archivedId);
+      setBrands(remaining);
+      if (remaining.length) selectBrand(remaining[0]);
+      else {
+        setSelectedId(null);
+        setDraft(null);
+      }
       setSaveState("idle");
       onChanged?.();
     } catch {
@@ -120,7 +131,9 @@ export function BrandSettings({ onChanged }: { onChanged?: () => void }) {
       setNewBrand({ ...EMPTY_NEW });
       setCreating(false);
       setCreateState("idle");
-      await load(body.brand.id);
+      // Optimistisk: vælg det nye brand fra POST-svaret (ikke en lag-udsat read)
+      setBrands((all) => (all.some((b) => b.id === body.brand.id) ? all : [...all, body.brand]));
+      selectBrand(body.brand);
       onChanged?.();
     } catch {
       setCreateState("error");
