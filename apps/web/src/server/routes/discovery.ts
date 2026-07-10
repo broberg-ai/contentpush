@@ -88,6 +88,9 @@ export const discoveryRoute = new Hono()
       brandVoice: body.data.brandVoice ?? null,
       platforms: body.data.platforms ?? null,
       postingIntervalDays: body.data.postingIntervalDays,
+      // F010.3: bær kladdens AutoDoc-slug over på det aktive brand, så
+      // fremtidige re-imports matcher på identitet — ikke navn.
+      autodocSlug: draft.autodocSlug,
     };
 
     if (draft.sourceBrandId) {

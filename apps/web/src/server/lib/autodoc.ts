@@ -104,16 +104,29 @@ export async function importBrandDraft(slug: string) {
   const mapped = mapToProfile(model);
   const target = AUTODOC_TARGETS.find((t) => t.slug === slug)!;
 
-  // Kladden linker til det aktive brand den foreslår en opdatering af
-  const [sourceBrand] = await db
+  // F010.3: link til kilde-brandet på den STABILE autodocSlug (ikke navn) —
+  // et omdøbt brand må ikke give en dublet ved re-import. Fald tilbage til
+  // navn for aktive brands oprettet før slug-linking (bagudkompatibilitet).
+  let [sourceBrand] = await db
     .select()
     .from(tables.brandProfiles)
     .where(
       and(
-        eq(tables.brandProfiles.name, target.brandName),
+        eq(tables.brandProfiles.autodocSlug, slug),
         eq(tables.brandProfiles.status, "active"),
       ),
     );
+  if (!sourceBrand) {
+    [sourceBrand] = await db
+      .select()
+      .from(tables.brandProfiles)
+      .where(
+        and(
+          eq(tables.brandProfiles.name, target.brandName),
+          eq(tables.brandProfiles.status, "active"),
+        ),
+      );
+  }
 
   const values = {
     ...mapped,
