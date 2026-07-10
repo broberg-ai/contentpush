@@ -15,6 +15,7 @@
         "@broberg/media": "^0.1.0",
         "@broberg/media-transform": "^0.1.0",
         "@broberg/notify": "0.1.0",
+        "@broberg/secret-scan": "0.1.7",
         "@broberg/theme": "^0.3.1",
         "@upmetrics/sdk": "0.3.1",
         "dotenv": "^17.4.2",
@@ -90,6 +91,8 @@
     "@broberg/media-transform": ["@broberg/media-transform@0.1.0", "", { "dependencies": { "heic-convert": "^2.1.0", "sharp": "^0.35.2" } }, "sha512-tyGAuu93tkPupj1oAgrRRWENSwoW/6R4cki0cZy+uFEht9BSUHQfh1phlvMe2B7tXnakAy/L7N6DzA0SIJhZig=="],
 
     "@broberg/notify": ["@broberg/notify@0.1.0", "", {}, "sha512-pI6RXVH1IrmxCjrdHwfM4R+YzTYHu3zAp/TMDXymy1rqGvZeNJm6JvsjSw/Qiwy3VmpBRqnYh44NjGp1CiqHpg=="],
+
+    "@broberg/secret-scan": ["@broberg/secret-scan@0.1.7", "", {}, "sha512-1tPjf9i/Cir4YxDuETYQZnCQSv17bi+dPS5XKaCZEOVgYxT/hmA8mVbf54H5Nep3NaUY5Ftc4hI+3Cssy7qZjw=="],
 
     "@broberg/theme": ["@broberg/theme@0.3.1", "", { "dependencies": { "culori": "^4.0.1", "yaml": "^2.5.1" }, "peerDependencies": { "preact": ">=10", "react": ">=18" }, "optionalPeers": ["preact", "react"], "bin": { "theme-design-md": "bin/theme-design-md.mjs" } }, "sha512-85NDJdjpIUy76wu5QK3Uig655JQpPyQUXc8j/dPg9lILqgPKvxna57tcIDVkvhpGiiL1AtIEL42J1QhL390MkQ=="],
 
