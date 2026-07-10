@@ -740,6 +740,78 @@ h3 {
   font-weight: 600;
 }
 
+/* Brand-vælger + CRUD (F009.1) */
+.brand-switcher {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.switcher-pill {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 120ms;
+}
+
+.switcher-pill:hover {
+  border-color: var(--ring);
+}
+
+.switcher-pill:active {
+  filter: brightness(0.94);
+}
+
+.switcher-pill.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+.brand-settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.brand-create-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.brand-create-form input {
+  flex: 1 1 160px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.brand-create-form input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.brand-platforms {
+  margin-bottom: 0.875rem;
+}
+
 /* Brand-kladder (F010.2) — gennemsyn + godkendelse af AutoDoc-forslag */
 .brand-drafts {
   margin-top: 1.5rem;

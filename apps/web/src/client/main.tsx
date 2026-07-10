@@ -4,6 +4,7 @@ import { init as initUpmetrics } from "@upmetrics/sdk";
 import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
 import { BrandDrafts } from "./components/BrandDrafts";
+import { BrandSwitcher } from "./components/BrandSwitcher";
 import { QueueBoard, type Post } from "./components/QueueBoard";
 import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
@@ -27,6 +28,8 @@ function App() {
   const [view, setView] = useState<"calendar" | "queue">("calendar");
   // F011.2: nøgle-gate — null = tjekker, false = login kræves
   const [authed, setAuthed] = useState<boolean | null>(null);
+  // F009.1: aktivt brand (null = alle) — filtrerer kø-køen på brandId
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/status")
@@ -91,13 +94,18 @@ function App() {
           </div>
         ) : (
           <>
+            <BrandSwitcher
+              activeBrandId={activeBrandId}
+              onSelect={setActiveBrandId}
+              refreshKey={refreshKey}
+            />
             <QueueBoard
-              activeBrandId={null}
+              activeBrandId={activeBrandId}
               refreshKey={refreshKey}
               onOpen={setOpenPost}
             />
             <BrandDrafts onChanged={() => setRefreshKey((k) => k + 1)} />
-            <BrandSettings />
+            <BrandSettings onChanged={() => setRefreshKey((k) => k + 1)} />
           </>
         )}
       </main>

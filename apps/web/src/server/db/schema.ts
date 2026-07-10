@@ -23,7 +23,8 @@ export const brandProfiles = sqliteTable("brand_profiles", {
   // F010.1: AutoDoc-kladder. 'draft' = foreslået profil fra discovery —
   // aktiveres ALDRIG automatisk (Christians godkendelse i F010.2 flipper den).
   // Generering/tick arbejder KUN på 'active'.
-  status: text("status", { enum: ["active", "draft"] })
+  // F009.1: 'archived' = blødt slettet (aldrig FK-hård-slet; usynlig i UI/generering)
+  status: text("status", { enum: ["active", "draft", "archived"] })
     .notNull()
     .default("active"),
   // Hvilket aktivt brand kladden foreslår en opdatering af (null = nyt target)
