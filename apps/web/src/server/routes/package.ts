@@ -55,11 +55,17 @@ export const packageRoute = new Hono().get("/:id/package", async (c) => {
   }
 
   const buffer = await zip.generateAsync({ type: "arraybuffer" });
-  const slug = post.headline
-    .toLowerCase()
-    .replace(/[^a-z0-9æøå]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
+  // Content-Disposition SKAL være ASCII — translitterér æøå og strip øvrige
+  // ikke-ASCII (danske overskrifter gav ellers 500 på headeren).
+  const slug =
+    post.headline
+      .toLowerCase()
+      .replace(/æ/g, "ae")
+      .replace(/ø/g, "oe")
+      .replace(/å/g, "aa")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "opslag";
 
   return c.body(buffer, 200, {
     "Content-Type": "application/zip",
