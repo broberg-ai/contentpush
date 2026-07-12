@@ -24,11 +24,18 @@ export function notifyDraftReady(input: { brandId: string; brandName: string; he
   });
 }
 
-/** "✅ Tid til at poste i dag" — sendes når en ready-post når sin scheduledDate. */
-export function notifyTimeToPost(input: { brandId: string; brandName: string; headline: string }) {
+/** "✅ Tid til at poste i dag" — sendes når en ready-post når sin scheduledDate.
+ *  F013.3: windowTime = tidsvinduets start (postens tidspunkt), nævnes i beskeden. */
+export function notifyTimeToPost(input: {
+  brandId: string;
+  brandName: string;
+  headline: string;
+  windowTime?: string;
+}) {
+  const när = input.windowTime ? ` (vinduet åbner kl. ${input.windowTime})` : "";
   return notifier.send({
     title: "✅ Tid til at poste i dag",
-    text: `${input.brandName}: "${input.headline}" er godkendt og planlagt til i dag — download pakken og post.`,
+    text: `${input.brandName}: "${input.headline}" er godkendt og planlagt til i dag${när} — download pakken og post.`,
     url: brandQueueUrl(input.brandId),
   });
 }

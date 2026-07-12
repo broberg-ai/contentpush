@@ -201,6 +201,15 @@ export function CalendarView({
                       .map(([, l]) => l)
                       .join("·")}
                   </span>
+                  {post.movedReason && (
+                    <span
+                      class="cal-chip-moved"
+                      data-testid={`calendar-moved-${post.id}`}
+                      title={post.movedReason}
+                    >
+                      {post.movedReason.startsWith("udnyt") ? "✦" : "↷"} {post.movedReason}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

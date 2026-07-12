@@ -6,6 +6,8 @@ import { env } from "../env";
 import { generatePostTexts } from "./generate";
 import { generateStoryImage, imageAvailable } from "../lib/images";
 import { notifyDraftReady, notifyTimeToPost } from "../lib/notify";
+import { resolveWindows, type Window } from "../lib/windows";
+import { resolveScheduleDate, TimingContext } from "../lib/schedule";
 
 // F012.2: pipelinen holder altid ≥TARGET_BUFFER fremtidige stories per brand.
 const TARGET_BUFFER = 5;
@@ -77,7 +79,12 @@ async function headlineForActivity(brand: Brand, activity: Activity): Promise<st
  * dateret i perioden, med tone-instruksen verbatim i prompten + activityId-
  * sporbarhed. Idempotent: count-baseret pr. brand. Returnerer antal skabt.
  */
-async function fillActivity(activity: Activity, brands: Brand[], now: Date): Promise<number> {
+async function fillActivity(
+  activity: Activity,
+  brands: Brand[],
+  now: Date,
+  ctx?: TimingContext,
+): Promise<number> {
   const targetBrands =
     activity.brandIds && activity.brandIds.length
       ? brands.filter((b) => activity.brandIds!.includes(b.id))
@@ -90,11 +97,21 @@ async function fillActivity(activity: Activity, brands: Brand[], now: Date): Pro
   let made = 0;
 
   for (const brand of targetBrands) {
+    const windows = await resolveWindows(brand.id);
     const have = existing.filter((p) => p.brandId === brand.id).length;
     for (let i = have; i < activity.cadencePerBrand; i++) {
       const frac = (i + 0.5) / activity.cadencePerBrand;
       let scheduledDate = new Date(activity.periodStart.getTime() + periodMs * frac);
       if (scheduledDate < now) scheduledDate = addDays(now, GENERATION_LEAD_DAYS);
+      const platforms = activity.channels ?? brand.platforms;
+      let movedFrom: Date | null = null;
+      let movedReason: string | null = null;
+      if (ctx) {
+        const r = resolveScheduleDate(scheduledDate, brand.id, platforms, windows, ctx);
+        scheduledDate = r.date;
+        movedFrom = r.movedFrom;
+        movedReason = r.movedReason;
+      }
       try {
         const headline = await headlineForActivity(brand, activity);
         const { content } = await generatePostTexts({
@@ -117,6 +134,8 @@ async function fillActivity(activity: Activity, brands: Brand[], now: Date): Pro
               Object.entries(content).map(([p, v]) => [p, v.hashtags]),
             ),
             scheduledDate,
+            movedFrom,
+            movedReason,
           })
           .returning();
         try {
@@ -162,12 +181,75 @@ async function headlineFromIdea(brand: Brand, ideaText: string): Promise<string>
   return text.trim().replace(/^["“]|["”]$/g, "");
 }
 
+/**
+ * F013.3: udnyt-dage — tematiseret ekstra-story per brand på hver udnyt-dag i
+ * produktions-horisonten (auto Black Friday/Cyber Monday + egne). Idempotent:
+ * springer over hvis brandet allerede har en story på dagen.
+ */
+async function generateUseDayStories(brands: Brand[], now: Date, ctx: TimingContext): Promise<number> {
+  const horizon = addDays(now, PRODUCTION_WINDOW_DAYS);
+  let made = 0;
+  for (const brand of brands) {
+    const useDays = ctx.useDaysBetween(brand.id, now, horizon);
+    if (!useDays.length) continue;
+    const brandPosts = await db.select().from(tables.posts).where(eq(tables.posts.brandId, brand.id));
+    for (const ud of useDays) {
+      if (brandPosts.some((p) => p.scheduledDate && sameDay(p.scheduledDate, ud.date))) continue;
+      try {
+        const headline = await headlineForActivity(
+          brand,
+          {
+            title: ud.title,
+            type: "maerkedag",
+            toneInstruks: `Skriv en tematiseret story i anledning af "${ud.title}". Gør dagen relevant for brandet.`,
+          } as Activity,
+        );
+        const { content } = await generatePostTexts({
+          headline,
+          companyContext: brand.companyContext ?? undefined,
+          brandVoice: brand.brandVoice ?? undefined,
+          platforms: brand.platforms ?? undefined,
+          toneInstruks: `Dette opslag markerer "${ud.title}".`,
+        });
+        const scheduledDate = new Date(ud.date);
+        const [post] = await db
+          .insert(tables.posts)
+          .values({
+            brandId: brand.id,
+            headline,
+            linkedinText: content.linkedin?.text,
+            instagramText: content.instagram?.text,
+            facebookText: content.facebook?.text,
+            hashtags: Object.fromEntries(Object.entries(content).map(([p, v]) => [p, v.hashtags])),
+            scheduledDate,
+            movedReason: `udnyt-dag: ${ud.title}`,
+          })
+          .returning();
+        try {
+          if (!imageAvailable()) throw new Error("no image");
+          const { mediaId } = await generateStoryImage(brand, headline);
+          await db.update(tables.posts).set({ mediaId, mediaType: "ai-generated", imagePending: false }).where(eq(tables.posts.id, post.id));
+        } catch {
+          await db.update(tables.posts).set({ imagePending: true }).where(eq(tables.posts.id, post.id));
+        }
+        made++;
+        console.log(`[udnyt] ${brand.name}: +"${headline}" (${ud.title})`);
+      } catch (err) {
+        console.warn(`[udnyt] ${brand.name}: ${ud.title} fejlede — ${err instanceof Error ? err.message : err}`);
+      }
+    }
+  }
+  return made;
+}
+
 // Fylder ét brands pipeline op til TARGET_BUFFER. Sekventiel inden for
 // brandet (dato-markøren lægger +interval i forlængelse — ingen kollision).
 async function fillBrand(
   brand: Brand,
   now: Date,
   pauseRanges: Array<{ start: Date; end: Date }> = [],
+  windows: Window[] = [],
+  ctx?: TimingContext,
 ): Promise<void> {
   const brandPosts = await db
     .select()
@@ -227,6 +309,16 @@ async function fillBrand(
         scheduledDate = addDays(hit.end, brand.postingIntervalDays);
       }
       cursor = scheduledDate;
+      // F013.3: flyt væk fra undgå-dage til gyldig dag i platform-vinduet
+      let movedFrom: Date | null = null;
+      let movedReason: string | null = null;
+      if (ctx && windows.length) {
+        const r = resolveScheduleDate(scheduledDate, brand.id, brand.platforms, windows, ctx);
+        scheduledDate = r.date;
+        movedFrom = r.movedFrom;
+        movedReason = r.movedReason;
+        cursor = scheduledDate;
+      }
       const [post] = await db
         .insert(tables.posts)
         .values({
@@ -240,6 +332,8 @@ async function fillBrand(
             Object.entries(content).map(([p, v]) => [p, v.hashtags]),
           ),
           scheduledDate,
+          movedFrom,
+          movedReason,
         })
         .returning();
       if (idea) {
@@ -336,7 +430,10 @@ export const cronHookRoute = new Hono().post("/tick", async (c) => {
         p.scheduledDate &&
         sameDay(p.scheduledDate, now)
       ) {
-        await notifyTimeToPost({ brandId: brand.id, brandName: brand.name, headline: p.headline });
+        // F013.3: tidspunktet følger tidsvinduet (scheduledDate bærer vinduets start)
+        const t = p.scheduledDate;
+        const windowTime = `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`;
+        await notifyTimeToPost({ brandId: brand.id, brandName: brand.name, headline: p.headline, windowTime });
         timeToPost.push({ brand: brand.name, headline: p.headline });
       }
     }
@@ -369,8 +466,16 @@ export const cronHookRoute = new Hono().post("/tick", async (c) => {
       // Rækkefølge: årshjul-aktiviteter FØRST (så pause-perioderne findes),
       // derefter buffer-opfyldning der springer kampagne-uger over.
       void (async () => {
-        for (const a of openActivities) await fillActivity(a, brands, now);
-        await Promise.all(brands.map((b) => fillBrand(b, now, pauseRangesFor(b))));
+        // F013.3: timing-kontekst (egne mærkedage + auto-helligdage)
+        const markers = await db.select().from(tables.markerDays);
+        const ctx = new TimingContext(
+          markers.map((m) => ({ kind: m.kind, month: m.month, day: m.day, brandId: m.brandId, title: m.title })),
+        );
+        for (const a of openActivities) await fillActivity(a, brands, now, ctx);
+        await generateUseDayStories(brands, now, ctx);
+        await Promise.all(
+          brands.map(async (b) => fillBrand(b, now, pauseRangesFor(b), await resolveWindows(b.id), ctx)),
+        );
       })()
         .catch((err) => console.warn(`[pipeline] fill fejlede: ${err}`))
         .finally(() => {

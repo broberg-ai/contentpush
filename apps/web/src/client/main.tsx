@@ -5,6 +5,7 @@ import { initTheme } from "@broberg/theme/preact";
 import { BrandSettings } from "./components/BrandSettings";
 import { BrandDrafts } from "./components/BrandDrafts";
 import { BrandSwitcher } from "./components/BrandSwitcher";
+import { TimingSettings } from "./components/TimingSettings";
 import { QueueBoard, type Post } from "./components/QueueBoard";
 import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
@@ -34,7 +35,7 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   // F012.1: kalenderen er forsiden; kø-viewet består som sekundær visning.
   // F009.2: et brand-deep-link åbner direkte i kø-viewet.
-  const [view, setView] = useState<"calendar" | "queue">(
+  const [view, setView] = useState<"calendar" | "queue" | "timing">(
     deepLinkBrand ? "queue" : "calendar",
   );
   // F011.2: nøgle-gate — null = tjekker, false = login kræves
@@ -85,6 +86,14 @@ function App() {
           >
             Kø
           </button>
+          <button
+            type="button"
+            class={view === "timing" ? "view-tab active" : "view-tab"}
+            data-testid="view-tab-timing"
+            onClick={() => setView("timing")}
+          >
+            Timing
+          </button>
         </nav>
       </header>
       <main class="app-main" data-testid="app-main">
@@ -105,8 +114,11 @@ function App() {
             onClose={() => setOpenActivity(null)}
             onChanged={() => setRefreshKey((k) => k + 1)}
           />
+        ) : view === "timing" ? (
+          // F013.3: timing & mærkedage
+          <TimingSettings />
         ) : view === "calendar" ? (
-          <div class="calendar-view">
+          <div class="calendar-view" data-testid="calendar-view">
             <YearWheel
               year={new Date().getFullYear()}
               refreshKey={refreshKey}

@@ -98,6 +98,9 @@ export const posts = sqliteTable("posts", {
   ideaId: text("idea_id"),
   // F013.2: hvilken årshjul-aktivitet storyen kom fra (null = fast serie/buffer)
   activityId: text("activity_id"),
+  // F013.3: flytte-sporbarhed når en story blev flyttet væk fra en undgå-dag
+  movedFrom: integer("moved_from", { mode: "timestamp" }),
+  movedReason: text("moved_reason"),
   // F012.4: billed-generering fejlede/mangler — storyen lever, billedet kan regenereres
   imagePending: integer("image_pending", { mode: "boolean" }).notNull().default(false),
   status: text("status", { enum: ["draft", "ready", "posted"] })
@@ -134,6 +137,41 @@ export const activities = sqliteTable("activities", {
   generatePolicy: text("generate_policy", { enum: ["auto", "manual"] })
     .notNull()
     .default("auto"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// F013.3: egne mærkedage (undgå|udnyt). Den danske helligdagskalender beregnes
+// indbygget (lib/holidays.ts) og lagres IKKE — kun Christians egne dage her.
+// month/day = årligt tilbagevendende (fx 27/11 Black Friday). brandId null = global.
+export const markerDays = sqliteTable("marker_days", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  kind: text("kind", { enum: ["avoid", "use"] }).notNull(),
+  month: integer("month").notNull(), // 1-12
+  day: integer("day").notNull(), // 1-31
+  brandId: text("brand_id"), // null = global
+  note: text("note"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// F013.3: tidsvinduer per platform (× brand). brandId null = global default.
+// weekdays = åbne ugedage (0=søn…6=lør). bestWeekday = ★ bedste slot.
+export const postingWindows = sqliteTable("posting_windows", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  brandId: text("brand_id"), // null = global default
+  platform: text("platform").notNull(), // linkedin | instagram | facebook | newsletter
+  weekdays: text("weekdays", { mode: "json" }).$type<number[]>().notNull(),
+  bestWeekday: integer("best_weekday"), // 0-6 el. null
+  startMin: integer("start_min").notNull(), // minutter fra midnat
+  endMin: integer("end_min").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

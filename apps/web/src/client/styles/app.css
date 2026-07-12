@@ -740,6 +740,196 @@ h3 {
   font-weight: 600;
 }
 
+/* Timing & mærkedage (F013.3) — jf. godkendt timing-mockup */
+.timing-section {
+  margin-bottom: 2rem;
+}
+.timing-section h2 {
+  font-size: 1.15rem;
+}
+.timing-sub {
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  margin: 0.25rem 0 0.9rem;
+  max-width: 75ch;
+}
+.timing-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+.timing-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 720px) {
+  .timing-cols {
+    grid-template-columns: 1fr;
+  }
+}
+.winrow {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--border);
+}
+.winrow:first-of-type {
+  border-top: 0;
+}
+.winplat {
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+.winplat small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+.winweek {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.winslot {
+  height: 26px;
+  border-radius: 4px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: #fff;
+  font-size: 0.7rem;
+  display: grid;
+  place-items: center;
+  transition: filter 120ms;
+}
+.winslot:hover {
+  filter: brightness(1.05);
+}
+.winslot.on {
+  background: oklch(0.72 0.08 145);
+  border-color: transparent;
+}
+.winslot.best {
+  background: var(--ok, oklch(0.5 0.14 145));
+  border-color: transparent;
+}
+.dayrow {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+.dayrow:first-of-type {
+  border-top: 0;
+}
+.dayrow-date {
+  flex: none;
+  width: 60px;
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+.h-avoid {
+  color: oklch(0.5 0.14 25);
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+}
+.h-use {
+  color: oklch(0.5 0.12 145);
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+}
+.marker-chip {
+  margin-left: auto;
+  flex: none;
+  font-size: 0.56rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  color: var(--muted-foreground);
+}
+.marker-chip.auto {
+  color: oklch(0.45 0.1 240);
+  border-color: oklch(0.7 0.08 240);
+}
+.marker-del {
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  min-width: 24px;
+  min-height: 24px;
+}
+.marker-del:hover {
+  background: var(--muted);
+}
+.marker-add {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+.marker-kind-toggle {
+  display: flex;
+  gap: 0.3rem;
+}
+.kind-pill {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.kind-pill.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.marker-add input[type="text"] {
+  flex: 1 1 160px;
+}
+.marker-add input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+}
+.marker-add input[type="number"] {
+  width: 64px;
+}
+.marker-add input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.cal-chip-moved {
+  display: block;
+  font-size: 0.56rem;
+  color: var(--ok, oklch(0.5 0.14 145));
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Årshjul-bånd (F013.1) — jf. godkendt dashboard-mockup (.wheel/.lane/.act) */
 .calendar-view {
   display: flex;

@@ -11,6 +11,7 @@ export type Post = {
   hashtags: Record<string, string[]> | null;
   status: "draft" | "ready" | "posted";
   scheduledDate: string | null;
+  movedReason?: string | null;
   postedAt: string | null;
   createdAt: string;
 };
