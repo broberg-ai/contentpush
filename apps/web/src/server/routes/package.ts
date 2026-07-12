@@ -55,20 +55,24 @@ export const packageRoute = new Hono().get("/:id/package", async (c) => {
   }
 
   const buffer = await zip.generateAsync({ type: "arraybuffer" });
-  // Content-Disposition SKAL være ASCII — translitterér æøå og strip øvrige
-  // ikke-ASCII (danske overskrifter gav ellers 500 på headeren).
-  const slug =
-    post.headline
-      .toLowerCase()
-      .replace(/æ/g, "ae")
-      .replace(/ø/g, "oe")
-      .replace(/å/g, "aa")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "opslag";
+
+  // Content-Disposition SKAL være ASCII (Bun afviser non-ASCII headere → 500).
+  // RFC 5987: ASCII `filename=`-fallback (æøå→ae/oe/aa) + `filename*=UTF-8''…`
+  // der bevarer det rigtige danske navn til klienter der forstår det.
+  const base = post.headline
+    .toLowerCase()
+    .replace(/[^a-z0-9æøå]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  const niceName = `contentpush-${base || "opslag"}.zip`;
+  const asciiName = niceName
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "oe")
+    .replace(/å/g, "aa");
 
   return c.body(buffer, 200, {
     "Content-Type": "application/zip",
-    "Content-Disposition": `attachment; filename="contentpush-${slug}.zip"`,
+    "Content-Disposition": `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(niceName)}`,
   });
 });
