@@ -169,9 +169,10 @@ async function fillBrand(brand: Brand, now: Date): Promise<void> {
 
   // Én Discord-besked per brand per opfyldning — aldrig 5 på stribe
   if (generated.length === 1) {
-    await notifyDraftReady({ brandName: brand.name, headline: generated[0] });
+    await notifyDraftReady({ brandId: brand.id, brandName: brand.name, headline: generated[0] });
   } else if (generated.length > 1) {
     await notifyDraftReady({
+      brandId: brand.id,
       brandName: brand.name,
       headline: `${generated.length} nye udkast klar til gennemsyn`,
     });
@@ -211,7 +212,7 @@ export const cronHookRoute = new Hono().post("/tick", async (c) => {
         p.scheduledDate &&
         sameDay(p.scheduledDate, now)
       ) {
-        await notifyTimeToPost({ brandName: brand.name, headline: p.headline });
+        await notifyTimeToPost({ brandId: brand.id, brandName: brand.name, headline: p.headline });
         timeToPost.push({ brand: brand.name, headline: p.headline });
       }
     }

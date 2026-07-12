@@ -20,9 +20,19 @@ export const packageRoute = new Hono().get("/:id/package", async (c) => {
     .where(eq(tables.posts.id, c.req.param("id")));
   if (!post) return c.json({ error: "Ukendt post" }, 404);
 
+  // F009.2: pakken indeholder PRÆCIS brandets platforme — ikke alle tre.
+  // Er brand.platforms sat, begrænser vi til dem; ellers (null) tages alle
+  // platforme der har tekst (bagudkompatibelt for profiler uden platform-valg).
+  const [brand] = await db
+    .select()
+    .from(tables.brandProfiles)
+    .where(eq(tables.brandProfiles.id, post.brandId));
+  const brandPlatforms = brand?.platforms ?? null;
+
   const zip = new JSZip();
 
   for (const [platform, field] of PLATFORM_FIELDS) {
+    if (brandPlatforms && !brandPlatforms.includes(platform)) continue;
     const text = post[field];
     if (!text) continue;
     const hashtags = post.hashtags?.[platform]?.join(" ") ?? "";

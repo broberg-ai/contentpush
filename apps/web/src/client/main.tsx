@@ -21,15 +21,25 @@ if (upmetricsDsn) {
   initUpmetrics({ dsn: upmetricsDsn, environment: import.meta.env.MODE });
 }
 
+// F009.2: notify-deep-link — ?brand=<id> åbner kø-viewet filtreret til brandet.
+const deepLinkBrand =
+  typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("brand")
+    : null;
+
 function App() {
   const [openPost, setOpenPost] = useState<Post | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  // F012.1: kalenderen er forsiden; kø-viewet består som sekundær visning
-  const [view, setView] = useState<"calendar" | "queue">("calendar");
+  // F012.1: kalenderen er forsiden; kø-viewet består som sekundær visning.
+  // F009.2: et brand-deep-link åbner direkte i kø-viewet.
+  const [view, setView] = useState<"calendar" | "queue">(
+    deepLinkBrand ? "queue" : "calendar",
+  );
   // F011.2: nøgle-gate — null = tjekker, false = login kræves
   const [authed, setAuthed] = useState<boolean | null>(null);
   // F009.1: aktivt brand (null = alle) — filtrerer kø-køen på brandId
-  const [activeBrandId, setActiveBrandId] = useState<string | null>(null);
+  // F009.2: forudfyldt fra ?brand=<id> deep-link
+  const [activeBrandId, setActiveBrandId] = useState<string | null>(deepLinkBrand);
 
   useEffect(() => {
     fetch("/api/auth/status")
