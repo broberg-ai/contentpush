@@ -740,6 +740,293 @@ h3 {
   font-weight: 600;
 }
 
+/* Årshjul-bånd (F013.1) — jf. godkendt dashboard-mockup (.wheel/.lane/.act) */
+.calendar-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.wheel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+
+.wheel h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.7rem;
+}
+
+.wheel .months {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.wheel .months span {
+  padding: 0.15rem 0;
+}
+
+.wheel .months .now {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-radius: 4px;
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.wheel .lane {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.wheel .lane .label {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+  margin: 0.4rem 0 0.1rem;
+  text-align: left;
+}
+
+.wheel .act {
+  border-radius: 5px;
+  padding: 0.28rem 0.45rem;
+  font-size: 0.66rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: filter 120ms;
+}
+
+.wheel .act:hover {
+  filter: brightness(1.08);
+}
+
+.wheel .act:active {
+  filter: brightness(0.92);
+}
+
+.wheel .act-empty {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+  padding: 0.1rem 0;
+}
+
+/* Årshjul-event foldet ud (F013.1) — fuld sheet, jf. detalje-mockup */
+.activity-sheet {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.activity-meta {
+  font-size: 0.78rem;
+  color: var(--muted-foreground);
+  margin-top: 0.2rem;
+}
+
+.sheet-close {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--background);
+  cursor: pointer;
+}
+
+.sheet-close:hover {
+  border-color: var(--ring);
+}
+
+.activity-body {
+  padding: 1.1rem 1.25rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.activity-body .minical {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.activity-body .minical .m {
+  padding: 0.3rem 0;
+  border-radius: 4px;
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+
+.activity-body .minical .m.on {
+  background: oklch(0.45 0.12 25);
+  color: #fff;
+  border-color: transparent;
+}
+
+.activity-body .minical .m.gen {
+  outline: 2px dashed oklch(0.55 0.13 65);
+  outline-offset: -2px;
+}
+
+.activity-body .legend {
+  font-size: 0.68rem;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.activity-body .legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin: 0 0.15rem 0 0.6rem;
+}
+
+.legend .lg-period {
+  background: oklch(0.45 0.12 25);
+}
+
+.legend .lg-window {
+  outline: 2px dashed oklch(0.55 0.13 65);
+  outline-offset: -2px;
+  background: var(--background);
+}
+
+.activity-cols {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.activity-block h4 {
+  font-size: 0.9rem;
+  margin-bottom: 0.45rem;
+}
+
+.tone-input {
+  width: 100%;
+  border: 1px solid var(--input);
+  border-radius: calc(var(--radius) * 0.8);
+  background: var(--background);
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--foreground);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.tone-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.activity-note {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+  margin-top: 0.35rem;
+}
+
+.activity-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.8rem;
+  font-size: 0.78rem;
+  margin-top: 0.9rem;
+}
+
+.activity-kv dt {
+  color: var(--muted-foreground);
+}
+
+.coverage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.cov-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+}
+
+.cov-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  flex: none;
+  background: var(--muted);
+  border: 1px dashed var(--border);
+}
+
+.cov-row small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.66rem;
+}
+
+.cov-chip {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.activity-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+}
+
+@media (max-width: 720px) {
+  .activity-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Brand-vælger + CRUD (F009.1) */
 .brand-switcher {
   display: flex;

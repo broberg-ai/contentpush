@@ -10,6 +10,8 @@ import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
 import { NextFive } from "./components/NextFive";
 import { StoryDetail } from "./components/StoryDetail";
+import { YearWheel, type Activity } from "./components/YearWheel";
+import { ActivityDetail } from "./components/ActivityDetail";
 import { LoginGate } from "./components/LoginGate";
 import "./styles/tokens.css";
 import "./styles/app.css";
@@ -40,6 +42,8 @@ function App() {
   // F009.1: aktivt brand (null = alle) — filtrerer kø-køen på brandId
   // F009.2: forudfyldt fra ?brand=<id> deep-link
   const [activeBrandId, setActiveBrandId] = useState<string | null>(deepLinkBrand);
+  // F013.1: åbent årshjul-event (produktions-ordre)
+  const [openActivity, setOpenActivity] = useState<Activity | null>(null);
 
   useEffect(() => {
     fetch("/api/auth/status")
@@ -94,12 +98,26 @@ function App() {
               setRefreshKey((k) => k + 1);
             }}
           />
+        ) : openActivity ? (
+          // F013.1: årshjul-event foldet ud (produktions-ordre)
+          <ActivityDetail
+            activity={openActivity}
+            onClose={() => setOpenActivity(null)}
+            onChanged={() => setRefreshKey((k) => k + 1)}
+          />
         ) : view === "calendar" ? (
-          <div class="calendar-layout">
-            <CalendarView refreshKey={refreshKey} onOpen={setOpenPost} />
-            <div class="calendar-rail">
-              <NextFive refreshKey={refreshKey} onOpen={setOpenPost} />
-              <IdeaPanel refreshKey={refreshKey} />
+          <div class="calendar-view">
+            <YearWheel
+              year={new Date().getFullYear()}
+              refreshKey={refreshKey}
+              onOpen={setOpenActivity}
+            />
+            <div class="calendar-layout">
+              <CalendarView refreshKey={refreshKey} onOpen={setOpenPost} />
+              <div class="calendar-rail">
+                <NextFive refreshKey={refreshKey} onOpen={setOpenPost} />
+                <IdeaPanel refreshKey={refreshKey} />
+              </div>
             </div>
           </div>
         ) : (

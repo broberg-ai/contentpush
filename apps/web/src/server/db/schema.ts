@@ -108,6 +108,35 @@ export const posts = sqliteTable("posts", {
     .$defaultFn(() => new Date()),
 });
 
+// F013.1: Årshjulet — en aktivitet er en PRODUKTIONS-ORDRE (tema + periode +
+// brands + kanaler + kadence + tone-instruks). F013.2 omsætter den til stories
+// i produktions-vinduet; tone-instruksen VINDER over AI'ens egne vinkler.
+export const activities = sqliteTable("activities", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  // lanes i årshjulet: kampagne + serie + lancering/maerkedag
+  type: text("type", {
+    enum: ["kampagne", "serie", "lancering", "maerkedag"],
+  }).notNull(),
+  periodStart: integer("period_start", { mode: "timestamp" }).notNull(),
+  periodEnd: integer("period_end", { mode: "timestamp" }).notNull(),
+  // brandIds tom/null = alle brands; ellers de valgte
+  brandIds: text("brand_ids", { mode: "json" }).$type<string[]>(),
+  channels: text("channels", { mode: "json" }).$type<string[]>(),
+  // stories pr. brand i perioden (F013.2 bruger den til dækning)
+  cadencePerBrand: integer("cadence_per_brand").notNull().default(1),
+  toneInstruks: text("tone_instruks"),
+  // auto = pipelinen genererer i produktions-vinduet; manual = kun på knap
+  generatePolicy: text("generate_policy", { enum: ["auto", "manual"] })
+    .notNull()
+    .default("auto"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value"),

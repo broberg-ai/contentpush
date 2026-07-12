@@ -11,6 +11,7 @@ import { packageRoute } from "./routes/package";
 import { calendarRoute } from "./routes/calendar";
 import { ideasRoute } from "./routes/ideas";
 import { discoveryRoute } from "./routes/discovery";
+import { activitiesRoute } from "./routes/activities";
 
 for (const [name, consequence] of darkSecrets()) {
   console.warn(`[ship-dark] ${name} ikke sat — ${consequence}`);
@@ -65,5 +66,6 @@ app.route("/api/posts", packageRoute);
 app.route("/api/calendar", calendarRoute);
 app.route("/api/ideas", ideasRoute);
 app.route("/api/discovery", discoveryRoute);
+app.route("/api/activities", activitiesRoute);
 
 export default app;
