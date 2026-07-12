@@ -31,10 +31,18 @@ export function ActivityDetail({
   const [tone, setTone] = useState(activity.toneInstruks ?? "");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [generated, setGenerated] = useState<
+    Array<{ id: string; headline: string; status: string; brandName: string | null }>
+  >([]);
 
   useEffect(() => {
     setTone(activity.toneInstruks ?? "");
     setSaveState("idle");
+    // F013.2: hent aktivitetens faktisk genererede stories
+    fetch(`/api/activities/${activity.id}/coverage`)
+      .then((r) => r.json())
+      .then((d) => setGenerated(d.generated ?? []))
+      .catch(() => setGenerated([]));
   }, [activity.id]);
 
   useEffect(() => {
@@ -145,27 +153,39 @@ export function ActivityDetail({
           </div>
 
           <div class="activity-block">
-            <h4>Dækning — {coverage.length} stories i denne aktivitet</h4>
+            <h4>Dækning — {Math.max(coverage.length, generated.length)} stories i denne aktivitet</h4>
             <div class="coverage" data-testid="activity-coverage">
-              {coverage.length === 0 ? (
-                <p class="activity-note" data-testid="activity-coverage-empty">
-                  Ingen aktive brands valgt endnu.
-                </p>
-              ) : (
-                coverage.map((c, i) => (
-                  <div class="cov-row" data-testid="activity-coverage-row" key={`${c.brand}-${i}`}>
+              {generated.map((g) => (
+                <div class="cov-row" data-testid="activity-coverage-row" key={g.id}>
+                  <span class="cov-thumb generated" />
+                  <div>
+                    {g.headline}
+                    <small>{g.brandName ?? "—"}</small>
+                  </div>
+                  <span class="cov-chip ok">GENERERET</span>
+                </div>
+              ))}
+              {Array.from({ length: Math.max(0, coverage.length - generated.length) }).map((_, i) => {
+                const slot = coverage[generated.length + i];
+                return (
+                  <div class="cov-row" data-testid="activity-coverage-row" key={`plan-${i}`}>
                     <span class="cov-thumb" />
                     <div>
-                      {activity.title} — {c.brand}
-                      <small>#{c.idx}</small>
+                      {activity.title} — {slot?.brand ?? "—"}
+                      <small>venter</small>
                     </div>
                     <span class="cov-chip">VENTER PÅ VINDUE</span>
                   </div>
-                ))
+                );
+              })}
+              {coverage.length === 0 && generated.length === 0 && (
+                <p class="activity-note" data-testid="activity-coverage-empty">
+                  Ingen aktive brands valgt endnu.
+                </p>
               )}
             </div>
             <p class="activity-note">
-              Stories genereres automatisk i produktions-vinduet (F013.2) og dukker op i kalenderen som udkast.
+              Stories genereres automatisk i produktions-vinduet (2 uger før) og dukker op i kalenderen som udkast.
             </p>
           </div>
         </div>

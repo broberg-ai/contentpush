@@ -58,6 +58,27 @@ export const activitiesRoute = new Hono()
       .returning();
     return c.json({ activity: serialize(activity) }, 201);
   })
+  // F013.2: dækning — aktivitetens faktisk genererede stories (m. status)
+  .get("/:id/coverage", async (c) => {
+    const rows = await db
+      .select({
+        id: tables.posts.id,
+        headline: tables.posts.headline,
+        status: tables.posts.status,
+        scheduledDate: tables.posts.scheduledDate,
+        brandId: tables.posts.brandId,
+        brandName: tables.brandProfiles.name,
+      })
+      .from(tables.posts)
+      .leftJoin(tables.brandProfiles, eq(tables.posts.brandId, tables.brandProfiles.id))
+      .where(eq(tables.posts.activityId, c.req.param("id")));
+    return c.json({
+      generated: rows.map((r) => ({
+        ...r,
+        scheduledDate: r.scheduledDate?.toISOString() ?? null,
+      })),
+    });
+  })
   .patch("/:id", async (c) => {
     const body = patchSchema.safeParse(await c.req.json().catch(() => null));
     if (!body.success) {

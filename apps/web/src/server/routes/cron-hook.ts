@@ -42,6 +42,108 @@ async function suggestHeadline(
 }
 
 type Brand = typeof tables.brandProfiles.$inferSelect;
+type Activity = typeof tables.activities.$inferSelect;
+
+// F013.2: produktions-vindue — aktivitetens stories genereres default 14 dage
+// før periodStart. Serier (faste buffer-posts) håndteres af fillBrand.
+const PRODUCTION_WINDOW_DAYS = 14;
+
+function activityWindowOpen(a: Activity, now: Date): boolean {
+  if (a.generatePolicy !== "auto") return false;
+  if (a.type === "serie") return false; // serie = fast buffer, ikke produktions-ordre
+  const windowStart = addDays(a.periodStart, -PRODUCTION_WINDOW_DAYS);
+  return now >= windowStart && now <= a.periodEnd;
+}
+
+// headline på-tema for en aktivitet (tone-instruksen styrer vinklen)
+async function headlineForActivity(brand: Brand, activity: Activity): Promise<string> {
+  const { text } = await ai.chat({
+    prompt: [
+      `Foreslå ÉN kort, konkret dansk headline til et social media-opslag for brandet "${brand.name}".`,
+      `Det er del af aktiviteten "${activity.title}" (${activity.type}).`,
+      activity.toneInstruks ? `BINDENDE tone-instruks (vinder over alt): """${activity.toneInstruks}"""` : "",
+      brand.brandVoice ? `Tone: ${brand.brandVoice}` : "",
+      "Svar KUN med selve headline-teksten — ingen anførselstegn, ingen forklaring.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    tier: "cheap",
+  });
+  return text.trim().replace(/^["“]|["”]$/g, "");
+}
+
+/**
+ * F013.2: genererer aktivitetens manglende stories (cadencePerBrand pr. brand),
+ * dateret i perioden, med tone-instruksen verbatim i prompten + activityId-
+ * sporbarhed. Idempotent: count-baseret pr. brand. Returnerer antal skabt.
+ */
+async function fillActivity(activity: Activity, brands: Brand[], now: Date): Promise<number> {
+  const targetBrands =
+    activity.brandIds && activity.brandIds.length
+      ? brands.filter((b) => activity.brandIds!.includes(b.id))
+      : brands;
+  const existing = await db
+    .select()
+    .from(tables.posts)
+    .where(eq(tables.posts.activityId, activity.id));
+  const periodMs = activity.periodEnd.getTime() - activity.periodStart.getTime();
+  let made = 0;
+
+  for (const brand of targetBrands) {
+    const have = existing.filter((p) => p.brandId === brand.id).length;
+    for (let i = have; i < activity.cadencePerBrand; i++) {
+      const frac = (i + 0.5) / activity.cadencePerBrand;
+      let scheduledDate = new Date(activity.periodStart.getTime() + periodMs * frac);
+      if (scheduledDate < now) scheduledDate = addDays(now, GENERATION_LEAD_DAYS);
+      try {
+        const headline = await headlineForActivity(brand, activity);
+        const { content } = await generatePostTexts({
+          headline,
+          companyContext: brand.companyContext ?? undefined,
+          brandVoice: brand.brandVoice ?? undefined,
+          platforms: activity.channels ?? brand.platforms ?? undefined,
+          toneInstruks: activity.toneInstruks ?? undefined,
+        });
+        const [post] = await db
+          .insert(tables.posts)
+          .values({
+            brandId: brand.id,
+            headline,
+            activityId: activity.id,
+            linkedinText: content.linkedin?.text,
+            instagramText: content.instagram?.text,
+            facebookText: content.facebook?.text,
+            hashtags: Object.fromEntries(
+              Object.entries(content).map(([p, v]) => [p, v.hashtags]),
+            ),
+            scheduledDate,
+          })
+          .returning();
+        try {
+          if (!imageAvailable()) throw new Error("billed-lag ikke konfigureret");
+          const { mediaId } = await generateStoryImage(brand, headline);
+          await db
+            .update(tables.posts)
+            .set({ mediaId, mediaType: "ai-generated", imagePending: false })
+            .where(eq(tables.posts.id, post.id));
+        } catch {
+          await db
+            .update(tables.posts)
+            .set({ imagePending: true })
+            .where(eq(tables.posts.id, post.id));
+        }
+        made++;
+        console.log(`[årshjul] ${activity.title} · ${brand.name}: +"${headline}"`);
+      } catch (err) {
+        console.warn(
+          `[årshjul] ${activity.title} · ${brand.name}: generering fejlede — ${err instanceof Error ? err.message : err}`,
+        );
+        break;
+      }
+    }
+  }
+  return made;
+}
 
 // F012.3: headline afledt af Christians idé (idéen er råstoffet, ikke AI'ens
 // egen opfindelse). Selve idé-teksten går desuden verbatim med i tekst-prompten.
@@ -62,7 +164,11 @@ async function headlineFromIdea(brand: Brand, ideaText: string): Promise<string>
 
 // Fylder ét brands pipeline op til TARGET_BUFFER. Sekventiel inden for
 // brandet (dato-markøren lægger +interval i forlængelse — ingen kollision).
-async function fillBrand(brand: Brand, now: Date): Promise<void> {
+async function fillBrand(
+  brand: Brand,
+  now: Date,
+  pauseRanges: Array<{ start: Date; end: Date }> = [],
+): Promise<void> {
   const brandPosts = await db
     .select()
     .from(tables.posts)
@@ -110,9 +216,16 @@ async function fillBrand(brand: Brand, now: Date): Promise<void> {
         brandVoice: brand.brandVoice ?? undefined,
         platforms: brand.platforms ?? undefined,
       });
-      const scheduledDate = cursor
+      let scheduledDate = cursor
         ? addDays(cursor, brand.postingIntervalDays)
         : addDays(now, GENERATION_LEAD_DAYS);
+      // F013.2: pause faste serier i kampagne-perioder — spring datoen forbi
+      // kampagnens slut, så du ikke poster dobbelt (kampagne-stories dækker ugen)
+      for (let guard = 0; guard < 12; guard++) {
+        const hit = pauseRanges.find((r) => scheduledDate >= r.start && scheduledDate <= r.end);
+        if (!hit) break;
+        scheduledDate = addDays(hit.end, brand.postingIntervalDays);
+      }
       cursor = scheduledDate;
       const [post] = await db
         .insert(tables.posts)
@@ -201,6 +314,17 @@ export const cronHookRoute = new Hono().post("/tick", async (c) => {
     .from(tables.brandProfiles)
     .where(eq(tables.brandProfiles.status, "active"));
   const posts = await db.select().from(tables.posts);
+  // F013.2: årshjul-aktiviteter — produktions-vinduer + kampagne-pause-perioder
+  const activities = await db.select().from(tables.activities);
+  const openActivities = activities.filter((a) => activityWindowOpen(a, now));
+  const pauseRangesFor = (brand: Brand) =>
+    activities
+      .filter(
+        (a) =>
+          a.type === "kampagne" &&
+          (!a.brandIds?.length || a.brandIds.includes(brand.id)),
+      )
+      .map((a) => ({ start: a.periodStart, end: a.periodEnd }));
 
   // "Tid til at poste i dag" for godkendte posts med scheduledDate i dag
   const timeToPost: Array<{ brand: string; headline: string }> = [];
@@ -234,14 +358,20 @@ export const cronHookRoute = new Hono().post("/tick", async (c) => {
   }));
 
   let fill: "started" | "already-running" | "not-needed" = "not-needed";
-  if (plan.some((p) => p.missing > 0)) {
+  const needsWork = plan.some((p) => p.missing > 0) || openActivities.length > 0;
+  if (needsWork) {
     if (fillRunning) {
       fill = "already-running";
     } else {
       fillRunning = true;
       fill = "started";
-      // Bevidst IKKE awaited: svaret skal ud nu; opfyldningen kører videre
-      void Promise.all(brands.map((b) => fillBrand(b, now)))
+      // Bevidst IKKE awaited: svaret skal ud nu; arbejdet kører videre.
+      // Rækkefølge: årshjul-aktiviteter FØRST (så pause-perioderne findes),
+      // derefter buffer-opfyldning der springer kampagne-uger over.
+      void (async () => {
+        for (const a of openActivities) await fillActivity(a, brands, now);
+        await Promise.all(brands.map((b) => fillBrand(b, now, pauseRangesFor(b))));
+      })()
         .catch((err) => console.warn(`[pipeline] fill fejlede: ${err}`))
         .finally(() => {
           fillRunning = false;
@@ -250,5 +380,12 @@ export const cronHookRoute = new Hono().post("/tick", async (c) => {
     }
   }
 
-  return c.json({ ok: true, at: now.toISOString(), fill, plan, timeToPost });
+  return c.json({
+    ok: true,
+    at: now.toISOString(),
+    fill,
+    plan,
+    timeToPost,
+    activities: { open: openActivities.length, total: activities.length },
+  });
 });

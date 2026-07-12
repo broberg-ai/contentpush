@@ -30,6 +30,8 @@ export async function generatePostTexts(input: {
   platforms?: string[];
   /** F012.3: Christians rå idé-tekst — indgår VERBATIM og vinder over frie vinkler */
   ideaText?: string;
+  /** F013.2: årshjul-aktivitetens tone-instruks — indgår VERBATIM og vinder over AI'ens vinkler */
+  toneInstruks?: string;
 }): Promise<{ content: GeneratedContent; costUsd?: number }> {
   const platforms = (
     input.platforms?.length ? input.platforms : [...PLATFORMS]
@@ -37,6 +39,9 @@ export async function generatePostTexts(input: {
 
   const prompt = [
     "Du er en social media-tekstforfatter. Skriv opslag på dansk ud fra headline og brand-kontekst.",
+    input.toneInstruks
+      ? `PRODUKTIONS-ORDRE (årshjul) — denne tone-instruks er BINDENDE og VINDER over dine egne vinkler: """${input.toneInstruks}"""`
+      : "",
     input.ideaText
       ? `Christians idé — byg opslaget på DEN (ordret, uredigeret): """${input.ideaText}"""`
       : "",
