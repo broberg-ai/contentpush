@@ -234,6 +234,15 @@ export const videoScripts = sqliteTable("video_scripts", {
   status: text("status", { enum: ["draft", "ready"] })
     .notNull()
     .default("draft"),
+  // F016.2: compile-output. renderStatus følger "Byg video"; renderMediaId peger
+  // på den færdige mp4 i media_library; renderLang = hvilket sprog den blev til.
+  renderStatus: text("render_status", {
+    enum: ["idle", "rendering", "ready", "failed"],
+  })
+    .notNull()
+    .default("idle"),
+  renderMediaId: text("render_media_id").references(() => mediaLibrary.id),
+  renderLang: text("render_lang"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

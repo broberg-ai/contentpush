@@ -4,6 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { parseJsonLoose } from "@broberg/ai-sdk";
 import { db, tables } from "../db";
 import { ai } from "../lib/ai";
+import { compileScript, scriptRenderUrl } from "../lib/scriptCompile";
 
 // F016.1: Drejebog-editor — CRUD for video_scripts + video_scenes + AI-udkast
 // ("Foreslå manus"). ALT AI går via @broberg/ai-sdk (ai.chat) — aldrig rå provider.
@@ -145,6 +146,8 @@ export const scriptsRoute = new Hono()
     return c.json({
       script: serializeScript(script),
       scenes: await scenesFor(script.id),
+      // F016.2: signeret URL til den kompilerede video (null indtil "Byg video")
+      renderUrl: await scriptRenderUrl(script.renderMediaId),
     });
   })
   .patch("/:id", async (c) => {
@@ -283,4 +286,34 @@ export const scriptsRoute = new Hono()
       })),
     );
     return c.json({ scenes: await scenesFor(scriptId) });
+  })
+  // F016.2: "Byg video" — kompilér drejebogen til én mp4 (valgt sprog × format).
+  // Langt kald (AI-billeder/klip + ffmpeg, minutter). VO ship-dark (Azure-nøgle).
+  .post("/:id/compile", async (c) => {
+    const scriptId = c.req.param("id");
+    const lang = c.req.query("lang") === "en" ? "en" : "da";
+    const [script] = await db
+      .select()
+      .from(tables.videoScripts)
+      .where(eq(tables.videoScripts.id, scriptId));
+    if (!script) return c.json({ error: "Ukendt drejebog" }, 404);
+    try {
+      const result = await compileScript(scriptId, lang);
+      const [updated] = await db
+        .select()
+        .from(tables.videoScripts)
+        .where(eq(tables.videoScripts.id, scriptId));
+      return c.json({
+        script: serializeScript(updated),
+        renderUrl: await scriptRenderUrl(updated.renderMediaId),
+        ...result,
+      });
+    } catch (err) {
+      await db
+        .update(tables.videoScripts)
+        .set({ renderStatus: "failed" })
+        .where(eq(tables.videoScripts.id, scriptId));
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: `Kompilering fejlede: ${message}` }, 503);
+    }
   });

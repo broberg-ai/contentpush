@@ -13,6 +13,8 @@ type ScriptRow = {
   aspect: "16:9" | "9:16";
   targetDurationSec: number;
   status: string;
+  renderStatus?: "idle" | "rendering" | "ready" | "failed";
+  renderLang?: string | null;
 };
 type Scene = {
   id: string;
@@ -28,6 +30,7 @@ type Scene = {
 type ScriptDetail = {
   script: ScriptRow & { languages: string[] | null; musicEnabled: boolean };
   scenes: Scene[];
+  renderUrl?: string | null;
 };
 
 const ROLES: Array<[Scene["role"], string]> = [
@@ -64,6 +67,8 @@ export function DrejebogEditor() {
   const [lang, setLang] = useState<"da" | "en">("da");
   const [suggesting, setSuggesting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [compiling, setCompiling] = useState(false);
+  const [compileErr, setCompileErr] = useState<string | null>(null);
   const [form, setForm] = useState({ brandId: "", title: "", aspect: "16:9" as "16:9" | "9:16", targetDurationSec: 60 });
 
   useEffect(() => {
@@ -126,6 +131,25 @@ export function DrejebogEditor() {
     const res = await fetch(`/api/scripts/${openId}/suggest`, { method: "POST" });
     setSuggesting(false);
     if (res.ok) { const { scenes } = await res.json(); setDetail((d) => d && { ...d, scenes }); }
+  }
+  // F016.2: "Byg video" — kompilér til mp4 (valgt sprog). Langt kald (minutter).
+  async function compile() {
+    if (!openId) return;
+    setCompiling(true);
+    setCompileErr(null);
+    setDetail((d) => d && { ...d, script: { ...d.script, renderStatus: "rendering" } });
+    try {
+      const res = await fetch(`/api/scripts/${openId}/compile?lang=${lang}`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      const fresh = await fetch(`/api/scripts/${openId}`).then((r) => r.json());
+      setDetail(fresh);
+    } catch (err) {
+      setCompileErr(err instanceof Error ? err.message : String(err));
+      setDetail((d) => d && { ...d, script: { ...d.script, renderStatus: "failed" } });
+    } finally {
+      setCompiling(false);
+    }
   }
 
   const total = useMemo(() => (detail ? detail.scenes.reduce((n, s) => n + sceneSecs(s, lang), 0) : 0), [detail, lang]);
@@ -247,8 +271,14 @@ export function DrejebogEditor() {
         <aside class="dg-rail">
           <div class="dg-preview">
             <div class={`dg-frame ${sc.aspect === "16:9" ? "r169" : "r916"}`} data-testid="drejebog-preview">
-              <span class="dg-play">▶</span>
-              <div class="dg-lt"><span class="dg-cap">{detail.scenes[0]?.onScreenText || (lang === "en" ? detail.scenes[0]?.voiceoverEn : detail.scenes[0]?.voiceoverDa) || "—"}</span></div>
+              {detail.renderUrl ? (
+                <video class="dg-video" src={detail.renderUrl} controls playsInline data-testid="drejebog-video" />
+              ) : (
+                <>
+                  <span class="dg-play">▶</span>
+                  <div class="dg-lt"><span class="dg-cap">{detail.scenes[0]?.onScreenText || (lang === "en" ? detail.scenes[0]?.voiceoverEn : detail.scenes[0]?.voiceoverDa) || "—"}</span></div>
+                </>
+              )}
             </div>
           </div>
           <div class="dg-opt">
@@ -263,8 +293,27 @@ export function DrejebogEditor() {
               <span class="pill ok">{sc.aspect}</span><span class="pill ok">Captions</span>
             </div>
           </div>
-          <button type="button" class="dg-build" data-testid="drejebog-build" disabled title="Kompilering kommer (F016.2)">Byg video · kommer</button>
-          <p class="dg-note">Selve videoen bygges i næste fase (venter på Lens-optagelse + musik-hylde).</p>
+          <button
+            type="button"
+            class="dg-build"
+            data-testid="drejebog-build"
+            disabled={compiling || detail.scenes.length === 0}
+            onClick={compile}
+          >
+            {compiling
+              ? "Bygger video… (~1-2 min)"
+              : sc.renderStatus === "ready"
+                ? "↻ Byg video igen"
+                : `Byg video (${lang.toUpperCase()})`}
+          </button>
+          {compileErr && (
+            <p class="dg-note dg-err" data-testid="drejebog-compile-error">{compileErr}</p>
+          )}
+          <p class="dg-note">
+            {sc.renderStatus === "ready"
+              ? `Video klar${sc.renderLang ? ` (${sc.renderLang.toUpperCase()})` : ""}. Tale tændes automatisk når Azure-nøglen er sat.`
+              : "Billeder + klip samles til én video. Tale (da/en) tændes når TTS-nøglen (Azure) er sat."}
+          </p>
         </aside>
       </div>
     </section>

@@ -169,3 +169,181 @@ export async function renderTemplateAnimation(
     await rm(dir, { recursive: true, force: true });
   }
 }
+
+// ── F016.2: drejebog-kompilering (samme indkapslede ffmpeg-søm) ────────────
+
+/**
+ * Rasteriserer et tekst-kort (fuld-frame farvet baggrund + centreret serif-
+ * tekst) til PNG-bytes — bruges til logo-scener og ui-capture-placeholders.
+ */
+export async function renderCardImage(input: {
+  title: string;
+  subtitle?: string;
+  aspect: Aspect;
+}): Promise<Uint8Array> {
+  const { w, h } = DIMS[input.aspect];
+  const base = Math.min(w, h);
+  const titleSize = Math.round(base * 0.09);
+  const subSize = Math.round(base * 0.04);
+  const cx = Math.round(w / 2);
+  const cy = Math.round(h / 2);
+  const sub = input.subtitle
+    ? `<text x="${cx}" y="${cy + Math.round(base * 0.09)}" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="${subSize}" fill="#D9C9B3">${escapeXml(input.subtitle)}</text>`
+    : "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+  <rect width="${w}" height="${h}" fill="#2a2018"/>
+  <text x="${cx}" y="${cy}" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="${titleSize}" font-weight="700" fill="#F5EFE6">${escapeXml(input.title)}</text>
+  ${sub}
+</svg>`;
+  return new Uint8Array(await sharp(Buffer.from(svg)).png().toBuffer());
+}
+
+/**
+ * Ken Burns-klip af vilkårlig varighed fra et still, med valgfri caption i
+ * lower-third (onScreenText). Ingen tekst-bånd hvis caption mangler.
+ */
+export async function renderStillClip(input: {
+  imageBytes: Uint8Array;
+  aspect: Aspect;
+  durationSec: number;
+  caption?: string;
+}): Promise<Uint8Array> {
+  const { w, h } = DIMS[input.aspect];
+  const duration = Math.max(1, input.durationSec);
+  const frames = Math.round(duration * FPS);
+  const dir = await mkdtemp(join(tmpdir(), "cp-stillclip-"));
+  const stillPath = join(dir, "still");
+  const textPath = join(dir, "text.png");
+  const outPath = join(dir, "out.mp4");
+  try {
+    await writeFile(stillPath, input.imageBytes);
+    const preW = w * 2;
+    const preH = h * 2;
+    const zoomMax = 1.1;
+    const zoomRate = (zoomMax - 1) / frames;
+    const kb =
+      `[0:v]scale=${preW}:${preH}:force_original_aspect_ratio=increase,crop=${preW}:${preH},` +
+      `zoompan=z='min(zoom+${zoomRate.toFixed(6)},${zoomMax})':d=${frames}:` +
+      `x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${w}x${h}:fps=${FPS},` +
+      `fade=t=in:st=0:d=0.4,fade=t=out:st=${(duration - 0.4).toFixed(2)}:d=0.4`;
+
+    const inputs = ["-y", "-loop", "1", "-t", String(duration), "-i", stillPath];
+    let filter: string;
+    if (input.caption && input.caption.trim()) {
+      await writeFile(textPath, await renderTextOverlay(w, h, input.caption, undefined));
+      inputs.push("-loop", "1", "-t", String(duration), "-i", textPath);
+      filter =
+        `${kb}[bg];[1:v]format=rgba,fade=t=in:st=0.5:d=0.8:alpha=1[txt];[bg][txt]overlay=0:0[v]`;
+    } else {
+      filter = `${kb}[v]`;
+    }
+
+    await runFfmpeg([
+      ...inputs,
+      "-filter_complex", filter,
+      "-map", "[v]",
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
+      "-r", String(FPS),
+      "-crf", "20",
+      "-preset", "medium",
+      "-movflags", "+faststart",
+      "-an",
+      "-t", String(duration),
+      outPath,
+    ]);
+    return new Uint8Array(await readFile(outPath));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Samler N scene-klip (evt. forskellig opløsning: still-klip vs AI-klip) til
+ * én mp4. Skalerer hvert input til drejebogens format, og muxer et samlet
+ * voiceover-lydspor hvis givet (ship-dark: uden lyd = tavs video).
+ */
+export async function concatClips(input: {
+  clips: Uint8Array[];
+  aspect: Aspect;
+  audio?: Uint8Array;
+}): Promise<{ bytes: Uint8Array; durationSec: number; width: number; height: number }> {
+  const { w, h } = DIMS[input.aspect];
+  if (input.clips.length === 0) throw new Error("Ingen scene-klip at samle");
+  const dir = await mkdtemp(join(tmpdir(), "cp-concat-"));
+  const outPath = join(dir, "out.mp4");
+  try {
+    const clipPaths: string[] = [];
+    for (let i = 0; i < input.clips.length; i++) {
+      const p = join(dir, `clip${i}.mp4`);
+      await writeFile(p, input.clips[i]);
+      clipPaths.push(p);
+    }
+    const args: string[] = ["-y"];
+    for (const p of clipPaths) args.push("-i", p);
+    let audioIdx = -1;
+    if (input.audio) {
+      const ap = join(dir, "vo.mp3");
+      await writeFile(ap, input.audio);
+      args.push("-i", ap);
+      audioIdx = clipPaths.length;
+    }
+    // Normalisér hvert klip til target-format, saml, og (evt.) mux lyd
+    const parts = clipPaths
+      .map(
+        (_, i) =>
+          `[${i}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1,fps=${FPS},format=yuv420p[v${i}]`,
+      )
+      .join(";");
+    const concatIn = clipPaths.map((_, i) => `[v${i}]`).join("");
+    const filter = `${parts};${concatIn}concat=n=${clipPaths.length}:v=1:a=0[v]`;
+    args.push("-filter_complex", filter, "-map", "[v]");
+    if (audioIdx >= 0) {
+      args.push("-map", `${audioIdx}:a`, "-c:a", "aac", "-b:a", "160k", "-shortest");
+    } else {
+      args.push("-an");
+    }
+    args.push(
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
+      "-r", String(FPS),
+      "-crf", "20",
+      "-preset", "medium",
+      "-movflags", "+faststart",
+      outPath,
+    );
+    await runFfmpeg(args);
+    return { bytes: new Uint8Array(await readFile(outPath)), durationSec: 0, width: w, height: h };
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/** Samler N lydspor (fx scene-voiceovers) til ét mp3-spor i rækkefølge. */
+export async function concatAudio(tracks: Uint8Array[]): Promise<Uint8Array> {
+  if (tracks.length === 0) throw new Error("Ingen lydspor at samle");
+  const dir = await mkdtemp(join(tmpdir(), "cp-audio-"));
+  const outPath = join(dir, "vo.mp3");
+  try {
+    const paths: string[] = [];
+    for (let i = 0; i < tracks.length; i++) {
+      const p = join(dir, `a${i}.mp3`);
+      await writeFile(p, tracks[i]);
+      paths.push(p);
+    }
+    const args: string[] = ["-y"];
+    for (const p of paths) args.push("-i", p);
+    const inrefs = paths.map((_, i) => `[${i}:a]`).join("");
+    args.push(
+      "-filter_complex", `${inrefs}concat=n=${paths.length}:v=0:a=1[a]`,
+      "-map", "[a]",
+      "-c:a", "libmp3lame",
+      "-q:a", "3",
+      outPath,
+    );
+    await runFfmpeg(args);
+    return new Uint8Array(await readFile(outPath));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
