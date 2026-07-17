@@ -103,11 +103,42 @@ export const posts = sqliteTable("posts", {
   movedReason: text("moved_reason"),
   // F012.4: billed-generering fejlede/mangler — storyen lever, billedet kan regenereres
   imagePending: integer("image_pending", { mode: "boolean" }).notNull().default(false),
+  // F014.2: video-tilstand. none = intet; suggested = foreslå-motoren (F014.3)
+  // flaggede opslaget AI-video-værd; approved/rendering = under generering;
+  // ready = video(er) klar; failed = generering fejlede. Still (mediaId) er
+  // altid fallback. videoTechnique = hvad den klar video blev lavet med.
+  videoStatus: text("video_status", {
+    enum: ["none", "suggested", "approved", "rendering", "ready", "failed"],
+  })
+    .notNull()
+    .default("none"),
+  videoTechnique: text("video_technique", { enum: ["template", "ai"] }),
   status: text("status", { enum: ["draft", "ready", "posted"] })
     .notNull()
     .default("draft"),
   scheduledDate: integer("scheduled_date", { mode: "timestamp" }),
   postedAt: integer("posted_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// F014.2: video på et opslag — én række pr. format (16:9 + 9:16). mediaId peger
+// på en media_library-video-række (url = fuld object-nøgle inkl. .mp4, IKKE et
+// variant-præfiks som billeder). technique = template (gratis ffmpeg-søm) | ai
+// (Kling via ai.animate, F014.3).
+export const postVideos = sqliteTable("post_videos", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  postId: text("post_id")
+    .notNull()
+    .references(() => posts.id),
+  aspect: text("aspect", { enum: ["16:9", "9:16"] }).notNull(),
+  mediaId: text("media_id")
+    .notNull()
+    .references(() => mediaLibrary.id),
+  technique: text("technique", { enum: ["template", "ai"] }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

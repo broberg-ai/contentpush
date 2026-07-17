@@ -8,7 +8,44 @@ import type { Post } from "./QueueBoard";
 export type PostDetailData = Post & {
   ideaText: string | null;
   gridUrl: string | null;
+  // F014.2: video på opslaget — tilstand + signerede URL'er pr. format
+  mediaType?: "stock" | "ai-generated" | "video" | null;
+  videoStatus?: "none" | "suggested" | "approved" | "rendering" | "ready" | "failed";
+  videoTechnique?: "template" | "ai" | null;
+  videoUrls?: { "16:9": string | null; "9:16": string | null };
 };
+
+// F014.2: preview viser video når opslaget har en (still = poster/fallback),
+// ellers still-billedet, ellers pending-pladsholder. LinkedIn/Facebook bruger
+// 16:9, Instagram 9:16.
+function PreviewMedia({
+  post,
+  aspect,
+  square,
+}: {
+  post: PostDetailData;
+  aspect: "16:9" | "9:16";
+  square?: boolean;
+}) {
+  const cls = square ? "pm-image pm-image-square" : "pm-image";
+  const videoUrl = post.videoUrls?.[aspect] ?? null;
+  if (videoUrl) {
+    return (
+      <video
+        class={cls}
+        src={videoUrl}
+        poster={post.gridUrl ?? undefined}
+        controls
+        muted
+        loop
+        playsInline
+        data-testid={`preview-video-${aspect === "16:9" ? "169" : "916"}`}
+      />
+    );
+  }
+  if (post.gridUrl) return <img class={cls} src={post.gridUrl} alt="" />;
+  return <div class={`${cls} pm-image-pending`}>billede kommer (F012.4)</div>;
+}
 
 type ActionState = { running: string | null; message: string | null; error: string | null };
 
@@ -55,11 +92,7 @@ function LinkedInPreview({ post }: { post: PostDetailData }) {
       {post.hashtags?.linkedin?.length ? (
         <p class="pm-tags">{post.hashtags.linkedin.join(" ")}</p>
       ) : null}
-      {post.gridUrl ? (
-        <img class="pm-image" src={post.gridUrl} alt="" />
-      ) : (
-        <div class="pm-image pm-image-pending">billede kommer (F012.4)</div>
-      )}
+      <PreviewMedia post={post} aspect="16:9" />
       <div class="pm-bar">
         <span>👍 Synes godt om</span>
         <span>💬 Kommenter</span>
@@ -80,11 +113,7 @@ function InstagramPreview({ post }: { post: PostDetailData }) {
         </div>
         <span class="pm-more">⋯</span>
       </div>
-      {post.gridUrl ? (
-        <img class="pm-image pm-image-square" src={post.gridUrl} alt="" />
-      ) : (
-        <div class="pm-image pm-image-square pm-image-pending">billede kommer (F012.4)</div>
-      )}
+      <PreviewMedia post={post} aspect="9:16" square />
       <div class="pm-bar pm-bar-ig">
         <span>♡</span>
         <span>💬</span>
@@ -115,11 +144,7 @@ function FacebookPreview({ post }: { post: PostDetailData }) {
       {post.hashtags?.facebook?.length ? (
         <p class="pm-tags">{post.hashtags.facebook.join(" ")}</p>
       ) : null}
-      {post.gridUrl ? (
-        <img class="pm-image" src={post.gridUrl} alt="" />
-      ) : (
-        <div class="pm-image pm-image-pending">billede kommer (F012.4)</div>
-      )}
+      <PreviewMedia post={post} aspect="16:9" />
       <div class="pm-bar">
         <span>👍 Synes godt om</span>
         <span>💬 Kommenter</span>
@@ -234,6 +259,66 @@ export function StoryDetail({
     }
   }
 
+  // F014.2: lav gratis skabelon-video (16:9 + 9:16) fra opslagets still
+  async function makeTemplateVideo() {
+    setState({ running: "video", message: null, error: null });
+    try {
+      const res = await fetch(`/api/posts/${post.id}/video/template`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      setState({ running: null, message: "Skabelon-video er klar", error: null });
+      setPost((p) => ({ ...p, ...body.post, videoUrls: body.videoUrls }));
+      onChanged({ ...post, ...body.post });
+    } catch (err) {
+      setState({
+        running: null,
+        message: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // F014.3: godkend forslag → generér AI-klip (~1-2 min). Optimistisk 'rendering'
+  // mens vi venter, så banneret viser fremgang.
+  async function approveVideo() {
+    setState({ running: "approve-video", message: null, error: null });
+    setPost((p) => ({ ...p, videoStatus: "rendering" }));
+    try {
+      const res = await fetch(`/api/posts/${post.id}/video/approve`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      setState({ running: null, message: "AI-video er klar", error: null });
+      setPost((p) => ({ ...p, ...body.post, videoUrls: body.videoUrls }));
+      onChanged({ ...post, ...body.post });
+    } catch (err) {
+      setPost((p) => ({ ...p, videoStatus: "failed" }));
+      setState({
+        running: null,
+        message: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  // F014.3: afvis forslag → behold skabelon-videoen (intet AI-kald)
+  async function rejectVideo() {
+    setState({ running: "reject-video", message: null, error: null });
+    try {
+      const res = await fetch(`/api/posts/${post.id}/video/reject`, { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      setState({ running: null, message: "Beholder skabelon", error: null });
+      setPost((p) => ({ ...p, ...body.post, videoUrls: body.videoUrls }));
+      onChanged({ ...post, ...body.post });
+    } catch (err) {
+      setState({
+        running: null,
+        message: null,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   async function runAction(action: "approve" | "regenerate" | "mark-posted", doneMessage: string) {
     setState({ running: action, message: null, error: null });
     try {
@@ -281,6 +366,46 @@ export function StoryDetail({
 
       <div class="sheet-cols">
         <div class="sheet-main">
+          {post.videoStatus === "suggested" && (
+            <div class="video-suggest" data-testid="video-suggest-banner">
+              <div class="video-suggest-text">
+                <b>🎬 Hero-opslag — værd at lave som AI-video</b>
+                <p>
+                  Knyttet til en lancering eller mærkedag. En AI-genereret video
+                  (16:9 + 9:16) løfter rækkevidden — koster lidt (~5 kr) og tager
+                  1-2 min. Skabelon-video er altid gratis.
+                </p>
+              </div>
+              <div class="video-suggest-actions">
+                <button
+                  type="button"
+                  class="btn-primary"
+                  data-testid="post-approve-video-button"
+                  disabled={state.running !== null}
+                  onClick={approveVideo}
+                >
+                  {state.running === "approve-video" ? "Genererer…" : "Godkend AI-video"}
+                </button>
+                <button
+                  type="button"
+                  class="btn-secondary"
+                  data-testid="post-reject-video-button"
+                  disabled={state.running !== null}
+                  onClick={rejectVideo}
+                >
+                  {state.running === "reject-video" ? "Beholder…" : "Behold skabelon"}
+                </button>
+              </div>
+            </div>
+          )}
+          {post.videoStatus === "rendering" && (
+            <div class="video-suggest" data-testid="video-rendering-banner">
+              <div class="video-suggest-text">
+                <b>⏳ Genererer AI-video… (~1-2 min)</b>
+                <p>Kling laver 16:9 + 9:16-klip fra billedet. Bliv på siden.</p>
+              </div>
+            </div>
+          )}
           <nav class="ptabs" data-testid="story-platform-tabs">
             {available.map(({ key, label }) => (
               <button
@@ -311,10 +436,25 @@ export function StoryDetail({
                   ? "↻ Regenerér billede"
                   : "Generér billede"}
             </button>
+            <button
+              type="button"
+              class="btn-secondary"
+              data-testid="post-make-video-button"
+              disabled={state.running !== null || !post.gridUrl}
+              onClick={makeTemplateVideo}
+            >
+              {state.running === "video"
+                ? "Laver video…"
+                : post.videoUrls?.["16:9"]
+                  ? "↻ Regenerér video"
+                  : "🎬 Lav skabelon-video"}
+            </button>
             <span class="media-actions-note">
-              {post.gridUrl
-                ? "Gammelt billede bevares i biblioteket"
-                : "Storyen mangler sit billede"}
+              {!post.gridUrl
+                ? "Storyen mangler sit billede"
+                : post.videoUrls?.["16:9"]
+                  ? "Video klar i 16:9 + 9:16 — gratis skabelon"
+                  : "Gratis skabelon-video (16:9 + 9:16) fra billedet"}
             </span>
           </div>
         </div>

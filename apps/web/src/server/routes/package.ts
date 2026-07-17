@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import JSZip from "jszip";
 import { db, tables } from "../db";
 import { media, variantKey } from "../lib/media";
+import { postVideoUrls } from "../lib/videos";
 
 // F005.3: download-pakke — zip med linkedin.txt / instagram.txt / facebook.txt
 // (tekst + hashtags) og media/ med det TRANSFORMEREDE asset (F003.2-varianten,
@@ -45,12 +46,27 @@ export const packageRoute = new Hono().get("/:id/package", async (c) => {
       .from(tables.mediaLibrary)
       .where(eq(tables.mediaLibrary.id, post.mediaId));
     if (item) {
-      // full-varianten = det transformerede, posting-klare asset
+      // full-varianten = det transformerede, posting-klare asset (altid med
+      // som fallback-billede, også når opslaget har video)
       const url = await media.signedUrl(variantKey(item.url, "full", "image/webp"));
       const res = await fetch(url);
       if (res.ok) {
         zip.file("media/full.webp", await res.arrayBuffer());
       }
+    }
+  }
+
+  // F014.2: har opslaget video, ryk begge formater med i pakken (mp4).
+  if (post.mediaType === "video" && media) {
+    const videoUrls = await postVideoUrls(post.id);
+    for (const [aspect, name] of [
+      ["16:9", "video-16x9.mp4"],
+      ["9:16", "video-9x16.mp4"],
+    ] as const) {
+      const url = videoUrls[aspect];
+      if (!url) continue;
+      const res = await fetch(url);
+      if (res.ok) zip.file(`media/${name}`, await res.arrayBuffer());
     }
   }
 

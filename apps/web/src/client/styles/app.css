@@ -215,6 +215,38 @@ h3 {
   color: var(--muted-foreground);
 }
 
+/* F014.3: foreslå-banner (hero-opslag → AI-video) */
+.video-suggest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in oklch, var(--primary) 8%, var(--card));
+}
+
+.video-suggest-text b {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.video-suggest-text p {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  max-width: 46ch;
+}
+
+.video-suggest-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 /* Idé-biblioteket (F012.3) */
 .idea-panel {
   background: var(--card);

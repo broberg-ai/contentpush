@@ -3,6 +3,13 @@ import { desc, eq } from "drizzle-orm";
 import { db, tables } from "../db";
 import { media, variantKey } from "../lib/media";
 import { generateStoryImage } from "../lib/images";
+import {
+  renderPostTemplateVideo,
+  renderPostAiVideo,
+  hasTemplateVideo,
+  suggestHeroVideos,
+  postVideoUrls,
+} from "../lib/videos";
 import { generatePostTexts } from "./generate";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -44,12 +51,15 @@ export const postsRoute = new Hono()
       row.mediaUrl && media
         ? await media.signedUrl(variantKey(row.mediaUrl, "grid", "image/webp"))
         : null;
+    // F014.2: signerede video-URL'er pr. format (null når opslaget ingen video har)
+    const videoUrls = await postVideoUrls(row.post.id);
     return c.json({
       post: {
         ...row.post,
         brandName: row.brandName,
         ideaText: row.ideaText,
         gridUrl,
+        videoUrls,
       },
     });
   })
@@ -133,6 +143,107 @@ export const postsRoute = new Hono()
       const message = err instanceof Error ? err.message : String(err);
       return c.json({ error: `Billed-generering fejlede: ${message}` }, 503);
     }
+  })
+  // F014.3: foreslå-motoren — flag hero-opslag (lancering/mærkedag) som
+  // "AI-video-værd". Idempotent scan; genererer intet (koster ikke penge).
+  .post("/suggest-videos", async (c) => {
+    const suggested = await suggestHeroVideos();
+    return c.json({ suggested });
+  })
+  // F014.2: lav gratis skabelon-video (16:9 + 9:16) fra opslagets still.
+  // Deterministisk ffmpeg-søm, $0, synkront (~5s/format). AI-vejen er F014.3.
+  .post("/:id/video/template", async (c) => {
+    const id = c.req.param("id");
+    const [post] = await db
+      .select()
+      .from(tables.posts)
+      .where(eq(tables.posts.id, id));
+    if (!post) return c.json({ error: "Ukendt post" }, 404);
+    if (!media) return c.json({ error: "Video-storage ikke konfigureret" }, 503);
+    if (!post.mediaId)
+      return c.json({ error: "Opslaget mangler et billede at animere" }, 400);
+
+    const [brand] = await db
+      .select()
+      .from(tables.brandProfiles)
+      .where(eq(tables.brandProfiles.id, post.brandId));
+
+    try {
+      await renderPostTemplateVideo(post, brand);
+      const [updated] = await db
+        .select()
+        .from(tables.posts)
+        .where(eq(tables.posts.id, id));
+      const videoUrls = await postVideoUrls(id);
+      return c.json({ post: updated, videoUrls });
+    } catch (err) {
+      await db
+        .update(tables.posts)
+        .set({ videoStatus: "failed" })
+        .where(eq(tables.posts.id, id));
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: `Video-generering fejlede: ${message}` }, 503);
+    }
+  })
+  // F014.3: godkend forslaget → generér AI-klip (Kling via ai.animate, 16:9 +
+  // 9:16). Synkront/parallelt (~1-2 min); tilstanden sættes 'rendering' først
+  // så en samtidig visning ser fremgangen. Fejl → 'failed'.
+  .post("/:id/video/approve", async (c) => {
+    const id = c.req.param("id");
+    const [post] = await db
+      .select()
+      .from(tables.posts)
+      .where(eq(tables.posts.id, id));
+    if (!post) return c.json({ error: "Ukendt post" }, 404);
+    if (!media) return c.json({ error: "Video-storage ikke konfigureret" }, 503);
+    if (!post.mediaId)
+      return c.json({ error: "Opslaget mangler et billede at animere" }, 400);
+
+    const [brand] = await db
+      .select()
+      .from(tables.brandProfiles)
+      .where(eq(tables.brandProfiles.id, post.brandId));
+
+    await db
+      .update(tables.posts)
+      .set({ videoStatus: "rendering" })
+      .where(eq(tables.posts.id, id));
+
+    try {
+      const { costUsd } = await renderPostAiVideo(post, brand);
+      const [updated] = await db
+        .select()
+        .from(tables.posts)
+        .where(eq(tables.posts.id, id));
+      const videoUrls = await postVideoUrls(id);
+      return c.json({ post: updated, videoUrls, costUsd });
+    } catch (err) {
+      await db
+        .update(tables.posts)
+        .set({ videoStatus: "failed" })
+        .where(eq(tables.posts.id, id));
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: `AI-video fejlede: ${message}` }, 503);
+    }
+  })
+  // F014.3: afvis forslaget → behold skabelon-videoen (ready hvis den findes,
+  // ellers none). Intet AI-kald, ingen omkostning.
+  .post("/:id/video/reject", async (c) => {
+    const id = c.req.param("id");
+    const [post] = await db
+      .select()
+      .from(tables.posts)
+      .where(eq(tables.posts.id, id));
+    if (!post) return c.json({ error: "Ukendt post" }, 404);
+
+    const keepsTemplate = await hasTemplateVideo(id);
+    const [updated] = await db
+      .update(tables.posts)
+      .set({ videoStatus: keepsTemplate ? "ready" : "none" })
+      .where(eq(tables.posts.id, id))
+      .returning();
+    const videoUrls = await postVideoUrls(id);
+    return c.json({ post: updated, videoUrls });
   })
   .post("/:id/mark-posted", async (c) => {
     const id = c.req.param("id");
