@@ -2,6 +2,13 @@
 FROM oven/bun:1 AS app
 WORKDIR /app
 
+# F014.2: skabelon-video-sømmen (lib/videoRender.ts) spawner ffmpeg, og sharp
+# rasteriserer serif-tekst via SVG → kræver en serif-font (Georgia/Times findes
+# ikke på Debian; fonts-liberation giver Times-kompatibel Liberation Serif).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg fonts-liberation \
+  && rm -rf /var/lib/apt/lists/*
+
 # Manifester først (docker-layer-cache på installs)
 COPY package.json bun.lock ./
 COPY apps/web/package.json apps/web/package.json
