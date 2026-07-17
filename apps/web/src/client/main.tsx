@@ -6,6 +6,7 @@ import { BrandSettings } from "./components/BrandSettings";
 import { BrandDrafts } from "./components/BrandDrafts";
 import { BrandSwitcher } from "./components/BrandSwitcher";
 import { TimingSettings } from "./components/TimingSettings";
+import { DrejebogEditor } from "./components/DrejebogEditor";
 import { QueueBoard, type Post } from "./components/QueueBoard";
 import { CalendarView } from "./components/CalendarView";
 import { IdeaPanel } from "./components/IdeaPanel";
@@ -35,7 +36,7 @@ function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   // F012.1: kalenderen er forsiden; kø-viewet består som sekundær visning.
   // F009.2: et brand-deep-link åbner direkte i kø-viewet.
-  const [view, setView] = useState<"calendar" | "queue" | "timing">(
+  const [view, setView] = useState<"calendar" | "queue" | "timing" | "drejebog">(
     deepLinkBrand ? "queue" : "calendar",
   );
   // F011.2: nøgle-gate — null = tjekker, false = login kræves
@@ -94,6 +95,14 @@ function App() {
           >
             Timing
           </button>
+          <button
+            type="button"
+            class={view === "drejebog" ? "view-tab active" : "view-tab"}
+            data-testid="view-tab-drejebog"
+            onClick={() => setView("drejebog")}
+          >
+            Drejebog
+          </button>
         </nav>
       </header>
       <main class="app-main" data-testid="app-main">
@@ -117,6 +126,9 @@ function App() {
         ) : view === "timing" ? (
           // F013.3: timing & mærkedage
           <TimingSettings />
+        ) : view === "drejebog" ? (
+          // F016.1: drejebog-editor
+          <DrejebogEditor />
         ) : view === "calendar" ? (
           <div class="calendar-view" data-testid="calendar-view">
             <YearWheel

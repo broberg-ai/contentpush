@@ -2056,3 +2056,104 @@ h3 {
   opacity: 0.65;
   cursor: progress;
 }
+
+/* F016.1: Drejebog-editor — jf. godkendt mockup 019f71db (light-warm, serif) */
+.drejebog { display: flex; flex-direction: column; gap: 1rem; }
+.drejebog .lbl {
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted-foreground); margin-right: 0.3rem;
+}
+.drejebog .seg {
+  display: inline-flex; border: 1px solid var(--border); border-radius: 999px;
+  overflow: hidden; background: var(--background);
+}
+.drejebog .seg button {
+  font: inherit; font-size: 0.78rem; padding: 0.35rem 0.7rem; border: 0;
+  background: transparent; color: var(--muted-foreground); cursor: pointer; min-height: 34px;
+}
+.drejebog .seg button.on { background: var(--primary); color: var(--primary-foreground); }
+.dg-head { display: flex; align-items: baseline; gap: 0.6rem; }
+.dg-head h2 { margin: 0; font-size: 1.15rem; }
+.dg-head span { font-size: 0.78rem; color: var(--muted-foreground); }
+
+/* create-linje + liste */
+.dg-create { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.dg-input {
+  font: inherit; font-size: 0.9rem; color: var(--foreground); background: var(--background);
+  border: 1px solid var(--border); border-radius: 8px; padding: 0.45rem 0.6rem;
+}
+.dg-input:focus { outline: none; border-color: var(--primary); }
+.dg-num { width: 5rem; }
+.dg-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.7rem; }
+.dg-card {
+  text-align: left; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 0.2rem;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem 0.85rem;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+.dg-card:hover { border-color: var(--primary); }
+.dg-card-title { font-family: var(--font-heading); font-size: 1rem; color: var(--foreground); }
+.dg-card-meta { font-size: 0.76rem; color: var(--muted-foreground); }
+
+/* editor topbar */
+.dg-topbar {
+  display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
+  padding-bottom: 0.7rem; border-bottom: 1px solid var(--border);
+}
+.dg-back { font: inherit; font-size: 0.82rem; background: none; border: 0; color: var(--primary); cursor: pointer; padding: 0.3rem 0; min-height: 34px; }
+.dg-brand { display: flex; flex-direction: column; line-height: 1.15; margin-right: auto; }
+.dg-brand b { font-family: var(--font-heading); font-size: 1.1rem; }
+.dg-brand span { font-size: 0.72rem; color: var(--muted-foreground); }
+.dg-ctl { display: flex; align-items: center; }
+.dg-runtime { font-size: 0.78rem; color: var(--muted-foreground); padding: 0.35rem 0.7rem; border: 1px dashed var(--border); border-radius: 999px; }
+.dg-runtime b { color: var(--foreground); }
+
+/* grid: scener + rail */
+.dg-grid { display: grid; grid-template-columns: 1fr 320px; gap: 1.1rem; align-items: start; }
+@media (max-width: 880px) { .dg-grid { grid-template-columns: 1fr; } .dg-rail { position: static !important; } }
+.dg-scenes { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.dg-scene { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.dg-shead { display: flex; align-items: center; gap: 0.55rem; padding: 0.5rem 0.7rem; background: var(--secondary); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.dg-idx { width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 0.75rem; font-weight: 600; display: grid; place-items: center; flex: none; }
+.role-seg button, .vis-seg button, .trans-seg button { font-size: 0.72rem; padding: 0.25rem 0.5rem; }
+.dg-dur { font-size: 0.74rem; color: var(--muted-foreground); font-variant-numeric: tabular-nums; margin-left: auto; }
+.dg-del { font: inherit; background: none; border: 0; color: var(--muted-foreground); cursor: pointer; font-size: 0.9rem; min-height: 34px; padding: 0 0.3rem; }
+.dg-del:hover { color: var(--destructive); }
+.dg-sbody { display: grid; grid-template-columns: 1fr 1fr; }
+@media (max-width: 620px) { .dg-sbody { grid-template-columns: 1fr; } .dg-visual { border-right: 0 !important; border-bottom: 1px solid var(--border); } }
+.dg-col { padding: 0.6rem 0.7rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.dg-visual { border-right: 1px solid var(--border); }
+.dg-prompt, .dg-vo {
+  font: inherit; font-size: 0.86rem; color: var(--foreground); background: var(--background);
+  border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.5rem; resize: vertical; min-height: 3.2rem; width: 100%;
+}
+.dg-vo { min-height: 3.6rem; }
+.dg-prompt:focus, .dg-vo:focus { outline: none; border-color: var(--primary); }
+.dg-sfoot { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.dg-ost { flex: 1; min-width: 8rem; font: inherit; font-size: 0.76rem; color: var(--foreground); background: var(--background); border: 1px solid var(--border); border-radius: 7px; padding: 0.3rem 0.5rem; }
+.dg-ost:focus { outline: none; border-color: var(--primary); }
+.dg-addscene { width: 100%; text-align: center; font: inherit; font-size: 0.82rem; color: var(--muted-foreground); background: none; border: 1px dashed var(--border); border-radius: var(--radius); padding: 0.55rem; cursor: pointer; min-height: 44px; }
+.dg-addscene:hover { color: var(--primary); border-color: var(--primary); }
+
+/* rail */
+.dg-rail { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 0.7rem; }
+.dg-preview { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem; }
+.dg-frame { position: relative; border-radius: 10px; overflow: hidden; margin: 0 auto; background: linear-gradient(135deg, oklch(0.72 0.07 70), oklch(0.46 0.09 55)); }
+.dg-frame.r169 { aspect-ratio: 16 / 9; max-width: 100%; }
+.dg-frame.r916 { aspect-ratio: 9 / 16; max-width: 175px; }
+.dg-play { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 1.5rem; opacity: 0.85; }
+.dg-lt { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.7rem; background: linear-gradient(transparent, rgba(30, 20, 12, 0.72)); }
+.dg-cap { font-family: var(--font-heading); font-size: 0.9rem; color: #f5efe6; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); display: block; }
+.dg-opt { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 0.7rem; }
+.dg-opt label { font-size: 0.82rem; font-weight: 600; }
+.dg-opt-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; }
+.dg-opt .tag { font-size: 0.64rem; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
+.dg-select { display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--muted-foreground); background: var(--background); border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.55rem; cursor: pointer; }
+.dg-hint { font-size: 0.68rem; color: var(--muted-foreground); margin: 0.35rem 0 0; }
+.dg-row { display: flex; align-items: center; justify-content: space-between; }
+.dg-toggle { font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: 999px; background: var(--sage, oklch(0.62 0.06 150)); color: #fff; }
+.dg-deliver { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
+.dg-deliver .pill { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: var(--muted); color: var(--foreground); }
+.dg-deliver .pill.ok::before { content: "✓ "; color: oklch(0.55 0.09 150); }
+.dg-build { font: inherit; font-size: 0.92rem; font-weight: 600; color: var(--muted-foreground); background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.65rem; min-height: 46px; cursor: not-allowed; }
+.dg-note { font-size: 0.68rem; color: var(--muted-foreground); text-align: center; margin: 0; }

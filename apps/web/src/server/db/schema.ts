@@ -177,6 +177,70 @@ export const postingWindows = sqliteTable("posting_windows", {
     .$defaultFn(() => new Date()),
 });
 
+// F016.1: Drejebog / scripted promo-video. Et video_script er en redigerbar
+// drejebog (brand + sprog + format + mål-varighed); dens scener er rækkerne i
+// to-kolonne-manuset. Selve video-kompileringen (F016.2) er en separat, delvist
+// blokeret fase — editoren gemmer KUN drejebogen. Musik default FRA (Christian).
+export const videoScripts = sqliteTable("video_scripts", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  brandId: text("brand_id")
+    .notNull()
+    .references(() => brandProfiles.id),
+  title: text("title").notNull(),
+  aspect: text("aspect", { enum: ["16:9", "9:16"] })
+    .notNull()
+    .default("16:9"),
+  // sprog der genereres speak + captions for, fx ["da","en"]
+  languages: text("languages", { mode: "json" }).$type<string[]>(),
+  targetDurationSec: integer("target_duration_sec").notNull().default(60),
+  // musik/lyd er VALGFRIT pr. video, DEFAULT FRA (Christian 2026-07-17)
+  musicEnabled: integer("music_enabled", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  musicTrackId: text("music_track_id"),
+  status: text("status", { enum: ["draft", "ready"] })
+    .notNull()
+    .default("draft"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const videoScenes = sqliteTable("video_scenes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  scriptId: text("script_id")
+    .notNull()
+    .references(() => videoScripts.id),
+  // rækkefølge i drejebogen (kolonne scene_order — "order" er et SQL-nøgleord)
+  order: integer("scene_order").notNull(),
+  // beat-sheet-rollen jf. research (hook→problem→løsning→bevis→CTA)
+  role: text("role", {
+    enum: ["hook", "problem", "solution", "proof", "cta"],
+  }).notNull(),
+  visualType: text("visual_type", {
+    enum: ["ai-broll", "ui-capture", "still", "logo"],
+  })
+    .notNull()
+    .default("ai-broll"),
+  visualPrompt: text("visual_prompt"), // ai-broll → ai.animate-prompt
+  flowRef: text("flow_ref"), // ui-capture → Lens record-flow-reference (F016.2)
+  mediaId: text("media_id").references(() => mediaLibrary.id), // still/logo
+  // speak pr. sprog — REDIGERBAR; ordtal driver scene-varigheden (÷150 wpm)
+  voiceoverDa: text("voiceover_da"),
+  voiceoverEn: text("voiceover_en"),
+  onScreenText: text("on_screen_text"), // lower-third / skærmtekst (valgfri)
+  transition: text("transition", { enum: ["cut", "fade", "slide"] })
+    .notNull()
+    .default("cut"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value"),
