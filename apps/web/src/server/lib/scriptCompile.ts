@@ -101,18 +101,20 @@ async function cropTo(imageBytes: Uint8Array, aspect: Aspect): Promise<Uint8Arra
   return bytes;
 }
 
-/** Materialiserer ét scene-klip alt efter visual-type. */
-async function renderScene(
+// F016.4: det DYRE visual (ai.image/ai.animate) laves ÉN gang pr. scene og deles
+// på tværs af sprog — kun VO + Ken Burns-varighed skifter pr. sprog (billig ffmpeg).
+type SceneAsset =
+  | { kind: "still"; image: Uint8Array }
+  | { kind: "clip"; clip: Uint8Array }
+  | { kind: "card"; image: Uint8Array };
+
+async function sceneAsset(
   scene: SceneRow,
   script: ScriptRow,
   brand: BrandRow | undefined,
-  lang: string,
-): Promise<Uint8Array> {
+): Promise<SceneAsset> {
   const aspect = script.aspect as Aspect;
-  const dur = estDurationSec(voText(scene, lang));
-  const caption = scene.onScreenText ?? undefined;
   const prompt = scene.visualPrompt?.trim() || script.title;
-
   switch (scene.visualType) {
     case "ai-broll": {
       const still = await sceneStill(prompt, aspect, brand);
@@ -124,52 +126,55 @@ async function renderScene(
         override: ANIMATE_OVERRIDE,
         purpose: "contentpush drejebog-broll",
       });
-      if (bytes) return bytes;
+      if (bytes) return { kind: "clip", clip: bytes };
       const res = await fetch(url);
       if (!res.ok) throw new Error(`AI-broll download fejlede: HTTP ${res.status}`);
-      return new Uint8Array(await res.arrayBuffer());
+      return { kind: "clip", clip: new Uint8Array(await res.arrayBuffer()) };
     }
-    case "logo": {
-      const card = await renderCardImage({
-        title: brand?.name ?? "Brand",
-        subtitle: caption,
-        aspect,
-      });
-      return renderStillClip({ imageBytes: card, aspect, durationSec: dur });
-    }
-    case "ui-capture": {
+    case "logo":
+      return {
+        kind: "card",
+        image: await renderCardImage({ title: brand?.name ?? "Brand", subtitle: scene.onScreenText ?? undefined, aspect }),
+      };
+    case "ui-capture":
       // UDSKUDT (Lens record-flow, gap 019f71ac) — placeholder, ingen crash
-      const card = await renderCardImage({
-        title: "UI-optagelse",
-        subtitle: "kommer — afventer Lens-optagelse",
-        aspect,
-      });
-      return renderStillClip({ imageBytes: card, aspect, durationSec: Math.min(dur, 3) });
-    }
+      return {
+        kind: "card",
+        image: await renderCardImage({ title: "UI-optagelse", subtitle: "kommer — afventer Lens-optagelse", aspect }),
+      };
     case "still":
-    default: {
-      const still = await sceneStill(prompt, aspect, brand);
-      return renderStillClip({ imageBytes: still, aspect, durationSec: dur, caption });
-    }
+    default:
+      return { kind: "still", image: await sceneStill(prompt, aspect, brand) };
   }
 }
 
+/** Bygger scenens klip for ÉT sprog fra det delte asset (varighed = sprogets VO). */
+async function sceneClipFor(
+  asset: SceneAsset,
+  scene: SceneRow,
+  lang: string,
+  aspect: Aspect,
+): Promise<Uint8Array> {
+  if (asset.kind === "clip") return asset.clip; // AI-broll: sprog-uafhængigt
+  const dur = estDurationSec(voText(scene, lang));
+  const capped = scene.visualType === "ui-capture" ? Math.min(dur, 3) : dur;
+  const caption = asset.kind === "card" ? undefined : (scene.onScreenText ?? undefined);
+  return renderStillClip({ imageBytes: asset.image, aspect, durationSec: capped, caption });
+}
+
 export interface CompileResult {
-  mediaId: string;
+  renders: Array<{ language: string; mediaId: string }>;
   scenesRendered: number;
   scenesCapped: number;
   hasVoiceover: boolean;
 }
 
 /**
- * Kompilerer en drejebog til én mp4 (valgt sprog × drejebogens format), lagrer
- * den i R2 + media_library, og peger scriptet på den. Sætter renderStatus
- * undervejs. Kaster ved fejl — kalderen sætter 'failed'.
+ * Kompilerer en drejebog til én mp4 PR. SPROG (begge sprog i ét kald), lagrer
+ * dem i R2 + media_library + video_script_renders. Scene-stills deles på tværs
+ * af sprog. Sætter renderStatus undervejs. Kaster ved fejl — kalderen sætter 'failed'.
  */
-export async function compileScript(
-  scriptId: string,
-  lang: string,
-): Promise<CompileResult> {
+export async function compileScript(scriptId: string): Promise<CompileResult> {
   if (!media) throw new Error("Video-storage ikke konfigureret (ship-dark)");
 
   const [script] = await db
@@ -194,69 +199,75 @@ export async function compileScript(
     .from(tables.brandProfiles)
     .where(eq(tables.brandProfiles.id, script.brandId));
 
+  const languages =
+    script.languages && script.languages.length > 0 ? script.languages : ["da"];
+
   await db
     .update(tables.videoScripts)
-    .set({ renderStatus: "rendering", renderLang: lang })
+    .set({ renderStatus: "rendering" })
     .where(eq(tables.videoScripts.id, scriptId));
 
-  // Scene-klip sekventielt (AI-billede/animate pr. scene).
-  const clips: Uint8Array[] = [];
-  for (const scene of scenes) {
-    clips.push(await renderScene(scene, script, brand, lang));
-  }
+  const aspect = script.aspect as Aspect;
+  // Dyre visuals ÉN gang (delt på tværs af sprog)
+  const assets: SceneAsset[] = [];
+  for (const scene of scenes) assets.push(await sceneAsset(scene, script, brand));
 
-  // Voiceover (ship-dark): kun når TTS-nøglen er sat OG alle scener har speak
-  // (så lyd og billede holder rækkefølge). Ellers tavs video (billed-pipelinen
-  // er stadig fuldt brugbar). Præcis per-scene-synk forfines i F016.4.
-  let voTrack: Uint8Array | undefined;
-  if (ttsAvailable()) {
-    const voClips: Uint8Array[] = [];
-    let allHaveVo = true;
-    for (const scene of scenes) {
-      const vo = await sceneVoiceover(voText(scene, lang), lang);
-      if (!vo) {
-        allHaveVo = false;
-        break;
-      }
-      voClips.push(vo);
+  // Erstat forrige renders
+  await db.delete(tables.videoScriptRenders).where(eq(tables.videoScriptRenders.scriptId, scriptId));
+
+  const renders: Array<{ language: string; mediaId: string }> = [];
+  let anyVo = false;
+  for (const lang of languages) {
+    const clips: Uint8Array[] = [];
+    for (let i = 0; i < scenes.length; i++) {
+      clips.push(await sceneClipFor(assets[i], scenes[i], lang, aspect));
     }
-    if (allHaveVo && voClips.length > 0) voTrack = await concatAudio(voClips);
-    else console.warn(`[compile] ${scriptId}: ikke alle scener har speak (${lang}) → tavs video`);
+    // Voiceover (ship-dark): kun når nøgle sat OG alle scener har speak i sproget
+    let voTrack: Uint8Array | undefined;
+    if (ttsAvailable()) {
+      const voClips: Uint8Array[] = [];
+      let allHaveVo = true;
+      for (const scene of scenes) {
+        const vo = await sceneVoiceover(voText(scene, lang), lang);
+        if (!vo) { allHaveVo = false; break; }
+        voClips.push(vo);
+      }
+      if (allHaveVo && voClips.length > 0) { voTrack = await concatAudio(voClips); anyVo = true; }
+      else console.warn(`[compile] ${scriptId}: ikke alle scener har speak (${lang}) → tavs`);
+    }
+
+    const { bytes } = await concatClips({ clips, aspect, audio: voTrack });
+    const key = `video/${crypto.randomUUID()}/drejebog-${lang}.mp4`;
+    await media.upload(key, bytes, { contentType: "video/mp4" });
+    const [item] = await db
+      .insert(tables.mediaLibrary)
+      .values({ url: key, type: "video", description: `${script.title} (${lang})` })
+      .returning();
+    await db
+      .insert(tables.videoScriptRenders)
+      .values({ scriptId, language: lang, mediaId: item.id });
+    renders.push({ language: lang, mediaId: item.id });
   }
-
-  const { bytes } = await concatClips({
-    clips,
-    aspect: script.aspect as Aspect,
-    audio: voTrack,
-  });
-
-  const key = `video/${crypto.randomUUID()}/drejebog-${lang}.mp4`;
-  await media.upload(key, bytes, { contentType: "video/mp4" });
-  const [item] = await db
-    .insert(tables.mediaLibrary)
-    .values({ url: key, type: "video", description: `${script.title} (${lang})` })
-    .returning();
 
   await db
     .update(tables.videoScripts)
-    .set({ renderStatus: "ready", renderMediaId: item.id, renderLang: lang })
+    .set({ renderStatus: "ready", renderMediaId: renders[0]?.mediaId ?? null, renderLang: languages[0] })
     .where(eq(tables.videoScripts.id, scriptId));
 
-  return {
-    mediaId: item.id,
-    scenesRendered: scenes.length,
-    scenesCapped: capped,
-    hasVoiceover: Boolean(voTrack),
-  };
+  return { renders, scenesRendered: scenes.length, scenesCapped: capped, hasVoiceover: anyVo };
 }
 
-/** Signeret URL til den kompilerede video (til preview/download). */
-export async function scriptRenderUrl(renderMediaId: string | null): Promise<string | null> {
-  if (!renderMediaId || !media) return null;
-  const [item] = await db
-    .select()
-    .from(tables.mediaLibrary)
-    .where(eq(tables.mediaLibrary.id, renderMediaId));
-  if (!item) return null;
-  return media.signedUrl(item.url);
+/** Signerede video-URL'er pr. sprog for en drejebog (til preview/download). */
+export async function scriptRenderUrls(scriptId: string): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  if (!media) return out;
+  const rows = await db
+    .select({ language: tables.videoScriptRenders.language, url: tables.mediaLibrary.url })
+    .from(tables.videoScriptRenders)
+    .leftJoin(tables.mediaLibrary, eq(tables.videoScriptRenders.mediaId, tables.mediaLibrary.id))
+    .where(eq(tables.videoScriptRenders.scriptId, scriptId));
+  for (const r of rows) {
+    if (r.url) out[r.language] = await media.signedUrl(r.url);
+  }
+  return out;
 }

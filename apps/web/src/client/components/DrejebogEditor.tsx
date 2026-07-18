@@ -30,7 +30,7 @@ type Scene = {
 type ScriptDetail = {
   script: ScriptRow & { languages: string[] | null; musicEnabled: boolean };
   scenes: Scene[];
-  renderUrl?: string | null;
+  renderUrls?: Record<string, string>;
 };
 
 const ROLES: Array<[Scene["role"], string]> = [
@@ -139,7 +139,7 @@ export function DrejebogEditor() {
     setCompileErr(null);
     setDetail((d) => d && { ...d, script: { ...d.script, renderStatus: "rendering" } });
     try {
-      const res = await fetch(`/api/scripts/${openId}/compile?lang=${lang}`, { method: "POST" });
+      const res = await fetch(`/api/scripts/${openId}/compile`, { method: "POST" });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
       const fresh = await fetch(`/api/scripts/${openId}`).then((r) => r.json());
@@ -271,8 +271,8 @@ export function DrejebogEditor() {
         <aside class="dg-rail">
           <div class="dg-preview">
             <div class={`dg-frame ${sc.aspect === "16:9" ? "r169" : "r916"}`} data-testid="drejebog-preview">
-              {detail.renderUrl ? (
-                <video class="dg-video" src={detail.renderUrl} controls playsInline data-testid="drejebog-video" />
+              {detail.renderUrls?.[lang] ? (
+                <video key={lang} class="dg-video" src={detail.renderUrls[lang]} controls playsInline data-testid="drejebog-video" />
               ) : (
                 <>
                   <span class="dg-play">▶</span>
@@ -302,17 +302,17 @@ export function DrejebogEditor() {
           >
             {compiling
               ? "Bygger video… (~1-2 min)"
-              : sc.renderStatus === "ready"
+              : detail.renderUrls && Object.keys(detail.renderUrls).length > 0
                 ? "↻ Byg video igen"
-                : `Byg video (${lang.toUpperCase()})`}
+                : "Byg video"}
           </button>
           {compileErr && (
             <p class="dg-note dg-err" data-testid="drejebog-compile-error">{compileErr}</p>
           )}
           <p class="dg-note">
-            {sc.renderStatus === "ready"
-              ? `Video klar${sc.renderLang ? ` (${sc.renderLang.toUpperCase()})` : ""}. Tale tændes automatisk når Azure-nøglen er sat.`
-              : "Billeder + klip samles til én video. Tale (da/en) tændes når TTS-nøglen (Azure) er sat."}
+            {detail.renderUrls && Object.keys(detail.renderUrls).length > 0
+              ? `Video klar på ${Object.keys(detail.renderUrls).map((l) => l.toUpperCase()).join(" + ")} — skift med DA/EN. Tale via Azure.`
+              : "Bygger én video pr. sprog (DA + EN). Tale via Azure — skift sprog med DA/EN foroven."}
           </p>
         </aside>
       </div>

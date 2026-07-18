@@ -4,7 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { parseJsonLoose } from "@broberg/ai-sdk";
 import { db, tables } from "../db";
 import { ai } from "../lib/ai";
-import { compileScript, scriptRenderUrl } from "../lib/scriptCompile";
+import { compileScript, scriptRenderUrls } from "../lib/scriptCompile";
 
 // F016.1: Drejebog-editor — CRUD for video_scripts + video_scenes + AI-udkast
 // ("Foreslå manus"). ALT AI går via @broberg/ai-sdk (ai.chat) — aldrig rå provider.
@@ -146,8 +146,8 @@ export const scriptsRoute = new Hono()
     return c.json({
       script: serializeScript(script),
       scenes: await scenesFor(script.id),
-      // F016.2: signeret URL til den kompilerede video (null indtil "Byg video")
-      renderUrl: await scriptRenderUrl(script.renderMediaId),
+      // F016.4: signerede video-URL'er pr. sprog (tom indtil "Byg video")
+      renderUrls: await scriptRenderUrls(script.id),
     });
   })
   .patch("/:id", async (c) => {
@@ -287,25 +287,24 @@ export const scriptsRoute = new Hono()
     );
     return c.json({ scenes: await scenesFor(scriptId) });
   })
-  // F016.2: "Byg video" — kompilér drejebogen til én mp4 (valgt sprog × format).
+  // F016.4: "Byg video" — kompilér drejebogen til én mp4 PR. SPROG (begge i ét).
   // Langt kald (AI-billeder/klip + ffmpeg, minutter). VO ship-dark (Azure-nøgle).
   .post("/:id/compile", async (c) => {
     const scriptId = c.req.param("id");
-    const lang = c.req.query("lang") === "en" ? "en" : "da";
     const [script] = await db
       .select()
       .from(tables.videoScripts)
       .where(eq(tables.videoScripts.id, scriptId));
     if (!script) return c.json({ error: "Ukendt drejebog" }, 404);
     try {
-      const result = await compileScript(scriptId, lang);
+      const result = await compileScript(scriptId);
       const [updated] = await db
         .select()
         .from(tables.videoScripts)
         .where(eq(tables.videoScripts.id, scriptId));
       return c.json({
         script: serializeScript(updated),
-        renderUrl: await scriptRenderUrl(updated.renderMediaId),
+        renderUrls: await scriptRenderUrls(scriptId),
         ...result,
       });
     } catch (err) {

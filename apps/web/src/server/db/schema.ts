@@ -281,6 +281,24 @@ export const videoScenes = sqliteTable("video_scenes", {
     .$defaultFn(() => new Date()),
 });
 
+// F016.4: kompileret video PR. SPROG for en drejebog (begge sprog i ét byg).
+// Én række pr. sprog; erstattes ved genkompilering.
+export const videoScriptRenders = sqliteTable("video_script_renders", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  scriptId: text("script_id")
+    .notNull()
+    .references(() => videoScripts.id),
+  language: text("language").notNull(),
+  mediaId: text("media_id")
+    .notNull()
+    .references(() => mediaLibrary.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value"),
