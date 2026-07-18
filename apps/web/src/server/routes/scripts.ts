@@ -174,6 +174,8 @@ export const scriptsRoute = new Hono()
   })
   .delete("/:id", async (c) => {
     const id = c.req.param("id");
+    // F016.4: ryd render-rækker (FK til scriptet) FØR scenes + script
+    await db.delete(tables.videoScriptRenders).where(eq(tables.videoScriptRenders.scriptId, id));
     await db.delete(tables.videoScenes).where(eq(tables.videoScenes.scriptId, id));
     const [script] = await db
       .delete(tables.videoScripts)
