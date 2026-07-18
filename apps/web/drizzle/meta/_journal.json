@@ -85,6 +85,13 @@
       "when": 1784333601065,
       "tag": "0011_hot_rafael_vega",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1784334718410,
+      "tag": "0012_curvy_squadron_sinister",
+      "breakpoints": true
     }
   ]
 }

@@ -299,6 +299,22 @@ export const videoScriptRenders = sqliteTable("video_script_renders", {
     .$defaultFn(() => new Date()),
 });
 
+// F016.3: kurateret musik-hylde — valgfrit baggrundsspor pr. video (default fra).
+// url = R2 object-nøgle (mp3). credit = attribution-krav (null = ingen, fx Pixabay).
+export const musicTracks = sqliteTable("music_tracks", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  mood: text("mood"),
+  url: text("url").notNull(),
+  durationSec: integer("duration_sec"),
+  credit: text("credit"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value"),

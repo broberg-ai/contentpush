@@ -50,6 +50,7 @@ const OPEN_PATHS = new Set([
   "/api/health",
   "/api/auth/login",
   "/api/auth/status",
+  "/api/auth/lens-session",
   "/api/cron/tick",
 ]);
 app.use("/api/*", async (c, next) => {

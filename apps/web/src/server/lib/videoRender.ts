@@ -260,13 +260,15 @@ export async function renderStillClip(input: {
 
 /**
  * Samler N scene-klip (evt. forskellig opløsning: still-klip vs AI-klip) til
- * én mp4. Skalerer hvert input til drejebogens format, og muxer et samlet
- * voiceover-lydspor hvis givet (ship-dark: uden lyd = tavs video).
+ * én mp4. Skalerer hvert input til drejebogens format, muxer et samlet
+ * voiceover-lydspor hvis givet, og mixer et valgfrit baggrunds-musikspor (F016.3)
+ * loopet + duckset (~15% volumen + fade) UNDER talen. Uden lyd = tavs video.
  */
 export async function concatClips(input: {
   clips: Uint8Array[];
   aspect: Aspect;
   audio?: Uint8Array;
+  music?: Uint8Array;
 }): Promise<{ bytes: Uint8Array; durationSec: number; width: number; height: number }> {
   const { w, h } = DIMS[input.aspect];
   if (input.clips.length === 0) throw new Error("Ingen scene-klip at samle");
@@ -281,12 +283,20 @@ export async function concatClips(input: {
     }
     const args: string[] = ["-y"];
     for (const p of clipPaths) args.push("-i", p);
-    let audioIdx = -1;
+    let voIdx = -1;
+    let musIdx = -1;
     if (input.audio) {
       const ap = join(dir, "vo.mp3");
       await writeFile(ap, input.audio);
       args.push("-i", ap);
-      audioIdx = clipPaths.length;
+      voIdx = clipPaths.length;
+    }
+    if (input.music) {
+      const mp = join(dir, "mus.mp3");
+      await writeFile(mp, input.music);
+      // -stream_loop -1: loop musikken så den dækker hele videoen (trimmes af -shortest)
+      args.push("-stream_loop", "-1", "-i", mp);
+      musIdx = clipPaths.length + (voIdx >= 0 ? 1 : 0);
     }
     // Normalisér hvert klip til target-format, saml, og (evt.) mux lyd
     const parts = clipPaths
@@ -296,10 +306,28 @@ export async function concatClips(input: {
       )
       .join(";");
     const concatIn = clipPaths.map((_, i) => `[v${i}]`).join("");
-    const filter = `${parts};${concatIn}concat=n=${clipPaths.length}:v=1:a=0[v]`;
+    let filter = `${parts};${concatIn}concat=n=${clipPaths.length}:v=1:a=0[v]`;
+
+    // Lyd: VO + musik (mix, musik duckset) · kun VO · kun musik · ingen
+    let audioMap: string | null = null;
+    if (voIdx >= 0 && musIdx >= 0) {
+      // normalize=0: SUMMÉR (ikke gennemsnit) → talen holder fuld volumen og
+      // musikken lægges duckset UNDER (ellers halverer amix talen).
+      filter +=
+        `;[${voIdx}:a]volume=1.0[vo];` +
+        `[${musIdx}:a]volume=0.12,afade=t=in:st=0:d=1.5[mus];` +
+        `[vo][mus]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]`;
+      audioMap = "[a]";
+    } else if (voIdx >= 0) {
+      audioMap = `${voIdx}:a`;
+    } else if (musIdx >= 0) {
+      filter += `;[${musIdx}:a]volume=0.3,afade=t=in:st=0:d=1.5[a]`;
+      audioMap = "[a]";
+    }
+
     args.push("-filter_complex", filter, "-map", "[v]");
-    if (audioIdx >= 0) {
-      args.push("-map", `${audioIdx}:a`, "-c:a", "aac", "-b:a", "160k", "-shortest");
+    if (audioMap) {
+      args.push("-map", audioMap, "-c:a", "aac", "-b:a", "160k", "-shortest");
     } else {
       args.push("-an");
     }

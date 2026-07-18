@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import sharp from "sharp";
 import { ai } from "./ai";
 import { media } from "./media";
+import { musicTrackBytes } from "./musicShelf";
 import {
   renderStillClip,
   renderCardImage,
@@ -208,6 +209,10 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
     .where(eq(tables.videoScripts.id, scriptId));
 
   const aspect = script.aspect as Aspect;
+  // F016.3: valgfrit baggrunds-musikspor (default fra) — hentes ÉN gang, deles
+  const music = script.musicTrackId
+    ? (await musicTrackBytes(script.musicTrackId)) ?? undefined
+    : undefined;
   // Dyre visuals ÉN gang (delt på tværs af sprog)
   const assets: SceneAsset[] = [];
   for (const scene of scenes) assets.push(await sceneAsset(scene, script, brand));
@@ -236,7 +241,7 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
       else console.warn(`[compile] ${scriptId}: ikke alle scener har speak (${lang}) → tavs`);
     }
 
-    const { bytes } = await concatClips({ clips, aspect, audio: voTrack });
+    const { bytes } = await concatClips({ clips, aspect, audio: voTrack, music });
     const key = `video/${crypto.randomUUID()}/drejebog-${lang}.mp4`;
     await media.upload(key, bytes, { contentType: "video/mp4" });
     const [item] = await db

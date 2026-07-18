@@ -53,4 +53,32 @@ export const authRoute = new Hono()
       maxAge: THIRTY_DAYS,
     });
     return c.json({ ok: true });
+  })
+  // Lens-mint (Cardmem Lens auth): given den delte adgangsnøgle som bearer,
+  // returnér en Playwright storageState med session-cookien — så Lens kan drive
+  // authed flows uden at nøglen rører agent-konteksten. Gate inaktiv = tom state.
+  .on(["GET", "POST"], "/lens-session", (c) => {
+    if (!env.DASHBOARD_ACCESS_KEY) return c.json({ cookies: [], origins: [] });
+    const bearer = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const got = Buffer.from(bearer);
+    const expected = Buffer.from(env.DASHBOARD_ACCESS_KEY);
+    if (got.length !== expected.length || !timingSafeEqual(got, expected)) {
+      return c.json({ error: "Forkert mint-nøgle" }, 401);
+    }
+    const domain = new URL(c.req.url).hostname;
+    return c.json({
+      cookies: [
+        {
+          name: COOKIE_NAME,
+          value: sessionToken()!,
+          domain,
+          path: "/",
+          expires: Math.floor(Date.now() / 1000) + THIRTY_DAYS,
+          httpOnly: true,
+          secure: Boolean(env.APP_PUBLIC_URL),
+          sameSite: "Lax" as const,
+        },
+      ],
+      origins: [],
+    });
   });

@@ -15,7 +15,17 @@ type ScriptRow = {
   status: string;
   renderStatus?: "idle" | "rendering" | "ready" | "failed";
   renderLang?: string | null;
+  musicTrackId?: string | null;
 };
+type MusicTrack = {
+  id: string;
+  title: string;
+  mood: string | null;
+  durationSec: number | null;
+  credit: string | null;
+  url: string | null;
+};
+let previewAudio: HTMLAudioElement | null = null;
 type Scene = {
   id: string;
   order: number;
@@ -70,12 +80,15 @@ export function DrejebogEditor() {
   const [compiling, setCompiling] = useState(false);
   const [compileErr, setCompileErr] = useState<string | null>(null);
   const [form, setForm] = useState({ brandId: "", title: "", aspect: "16:9" as "16:9" | "9:16", targetDurationSec: 60 });
+  const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([]);
+  const [musicOpen, setMusicOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/brands").then((r) => r.json()).then((d) => {
       setBrands(d.brands ?? []);
       setForm((f) => ({ ...f, brandId: f.brandId || (d.brands?.[0]?.id ?? "") }));
     });
+    fetch("/api/scripts/music-tracks").then((r) => r.json()).then((d) => setMusicTracks(d.tracks ?? []));
   }, []);
   function loadScripts() {
     fetch("/api/scripts").then((r) => r.json()).then((d) => setScripts(d.scripts ?? []));
@@ -152,6 +165,21 @@ export function DrejebogEditor() {
     }
   }
 
+  // F016.3: valgfrit baggrunds-musikspor (default fra) — vælg fra hylden
+  async function pickMusic(id: string | null) {
+    if (!openId) return;
+    setMusicOpen(false);
+    setDetail((d) => d && { ...d, script: { ...d.script, musicTrackId: id } });
+    await fetch(`/api/scripts/${openId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ musicTrackId: id }) });
+  }
+  function previewTrack(url: string | null) {
+    if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+    if (!url) return;
+    previewAudio = new Audio(url);
+    previewAudio.volume = 0.6;
+    previewAudio.play().catch(() => {});
+  }
+
   const total = useMemo(() => (detail ? detail.scenes.reduce((n, s) => n + sceneSecs(s, lang), 0) : 0), [detail, lang]);
 
   // ---- LISTE + OPRET ----
@@ -196,6 +224,7 @@ export function DrejebogEditor() {
 
   // ---- EDITOR ----
   const sc = detail.script;
+  const currentTrack = musicTracks.find((t) => t.id === sc.musicTrackId) ?? null;
   return (
     <section class="drejebog" data-testid="drejebog-editor">
       <div class="dg-topbar">
@@ -281,10 +310,31 @@ export function DrejebogEditor() {
               )}
             </div>
           </div>
-          <div class="dg-opt">
+          <div class="dg-opt dg-music" data-testid="drejebog-music">
             <div class="dg-opt-h"><label>Musik</label><span class="tag">valgfri · fra som standard</span></div>
-            <div class="dg-select" data-testid="drejebog-music">Ingen musik ▾</div>
-            <p class="dg-hint">Vælg fra din royalty-free hylde (Pixabay) — kun når den gør videoen bedre.</p>
+            <button type="button" class="dg-music-toggle" data-testid="drejebog-music-toggle"
+              aria-expanded={musicOpen} onClick={() => setMusicOpen((o) => !o)}>
+              <span>{currentTrack ? `${currentTrack.title}${currentTrack.mood ? ` · ${currentTrack.mood}` : ""}` : "Ingen musik"}</span>
+              <span class="dg-music-caret">▾</span>
+            </button>
+            {musicOpen && (
+              <div class="dg-music-menu" data-testid="drejebog-music-menu">
+                <button type="button" class={`dg-music-opt${sc.musicTrackId ? "" : " on"}`} data-testid="drejebog-music-none"
+                  onClick={() => { previewTrack(null); pickMusic(null); }}>Ingen musik</button>
+                {musicTracks.map((t) => (
+                  <div class={`dg-music-opt${sc.musicTrackId === t.id ? " on" : ""}`} key={t.id}>
+                    <button type="button" class="dg-music-pick" data-testid={`drejebog-music-opt-${t.id}`} onClick={() => pickMusic(t.id)}>
+                      <b>{t.title}</b>{t.mood ? <span class="dg-music-mood">{t.mood}</span> : null}
+                    </button>
+                    {t.url && (
+                      <button type="button" class="dg-music-play" data-testid={`drejebog-music-play-${t.id}`}
+                        aria-label={`Afspil ${t.title}`} onClick={() => previewTrack(t.url)}>▶</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <p class="dg-hint">{currentTrack?.credit ?? "Vælg fra din royalty-free hylde — kun når den gør videoen bedre."}</p>
           </div>
           <div class="dg-opt dg-row"><label>Undertekster</label><span class="dg-toggle on">ord-for-ord ✓</span></div>
           <div class="dg-opt"><label>Leverer</label>

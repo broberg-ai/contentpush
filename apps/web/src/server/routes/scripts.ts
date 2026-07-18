@@ -5,6 +5,7 @@ import { parseJsonLoose } from "@broberg/ai-sdk";
 import { db, tables } from "../db";
 import { ai } from "../lib/ai";
 import { compileScript, scriptRenderUrls } from "../lib/scriptCompile";
+import { listMusicTracks, seedMusicShelf } from "../lib/musicShelf";
 
 // F016.1: Drejebog-editor — CRUD for video_scripts + video_scenes + AI-udkast
 // ("Foreslå manus"). ALT AI går via @broberg/ai-sdk (ai.chat) — aldrig rå provider.
@@ -94,6 +95,17 @@ async function suggestScenes(
 }
 
 export const scriptsRoute = new Hono()
+  // F016.3: musik-hylde — REGISTRERES FØR /:id (ellers matcher /music-tracks som id)
+  .get("/music-tracks", async (c) => {
+    return c.json({ tracks: await listMusicTracks() });
+  })
+  .post("/music/seed", async (c) => {
+    try {
+      return c.json(await seedMusicShelf());
+    } catch (err) {
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, 503);
+    }
+  })
   .get("/", async (c) => {
     const rows = await db
       .select({
