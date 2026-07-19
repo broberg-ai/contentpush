@@ -1,0 +1,1 @@
+ALTER TABLE `video_scripts` ADD `captions_enabled` integer DEFAULT true NOT NULL;

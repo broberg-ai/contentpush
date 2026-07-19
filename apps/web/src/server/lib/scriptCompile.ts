@@ -8,6 +8,8 @@ import {
   renderCardImage,
   concatClips,
   concatAudio,
+  probeAudioDurationSec,
+  fitClipToDuration,
   type Aspect,
 } from "./videoRender";
 import { db, tables } from "../db";
@@ -149,18 +151,45 @@ async function sceneAsset(
   }
 }
 
-/** Bygger scenens klip for ÉT sprog fra det delte asset (varighed = sprogets VO). */
+/** Bygger scenens klip i en GIVEN varighed (drevet af scenens ægte VO-længde). */
 async function sceneClipFor(
   asset: SceneAsset,
   scene: SceneRow,
-  lang: string,
   aspect: Aspect,
+  durationSec: number,
 ): Promise<Uint8Array> {
-  if (asset.kind === "clip") return asset.clip; // AI-broll: sprog-uafhængigt
-  const dur = estDurationSec(voText(scene, lang));
-  const capped = scene.visualType === "ui-capture" ? Math.min(dur, 3) : dur;
+  // AI-broll: sprog-uafhængigt klip → tilpas til scenens varighed så VO+captions synker
+  if (asset.kind === "clip") return fitClipToDuration(asset.clip, durationSec, aspect);
   const caption = asset.kind === "card" ? undefined : (scene.onScreenText ?? undefined);
-  return renderStillClip({ imageBytes: asset.image, aspect, durationSec: capped, caption });
+  return renderStillClip({ imageBytes: asset.image, aspect, durationSec, caption });
+}
+
+/**
+ * F016.5 — del scenens speak-tekst i caption-linjer og fordel dem inden for
+ * scenens ægte varighed (proportionalt med tegn-længde). Absolutte sek.
+ * Timing-kilde: estimat-fordeling ANKRET til den probede VO-længde (AC#0-fallback,
+ * fordi ai.transcribe kun giver ord/segment-timing via Whisper/OpenAI-nøgle som
+ * dette repo ikke har — Azure/Mistral-adapterne returnerer kun {text}).
+ */
+function captionLinesFor(
+  text: string,
+  startAbs: number,
+  durationSec: number,
+): Array<{ text: string; start: number; end: number }> {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const CHUNK = 8; // ~2 skærmlinjer pr. caption
+  const chunks: string[] = [];
+  for (let i = 0; i < words.length; i += CHUNK) chunks.push(words.slice(i, i + CHUNK).join(" "));
+  const totalChars = chunks.reduce((n, c) => n + c.length, 0) || 1;
+  const out: Array<{ text: string; start: number; end: number }> = [];
+  let t = startAbs;
+  for (const c of chunks) {
+    const d = durationSec * (c.length / totalChars);
+    out.push({ text: c, start: t, end: t + d });
+    t += d;
+  }
+  return out;
 }
 
 export interface CompileResult {
@@ -223,25 +252,57 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
   const renders: Array<{ language: string; mediaId: string }> = [];
   let anyVo = false;
   for (const lang of languages) {
-    const clips: Uint8Array[] = [];
-    for (let i = 0; i < scenes.length; i++) {
-      clips.push(await sceneClipFor(assets[i], scenes[i], lang, aspect));
-    }
-    // Voiceover (ship-dark): kun når nøgle sat OG alle scener har speak i sproget
-    let voTrack: Uint8Array | undefined;
-    if (ttsAvailable()) {
-      const voClips: Uint8Array[] = [];
-      let allHaveVo = true;
+    // 1) Voiceover pr. scene (ship-dark: kun når TTS-nøgle sat OG alle scener har speak).
+    //    VO'ens ÆGTE længde driver scene-varigheden → tale, video og captions synker.
+    const voClips: Uint8Array[] = [];
+    let allHaveVo = ttsAvailable();
+    if (allHaveVo) {
       for (const scene of scenes) {
         const vo = await sceneVoiceover(voText(scene, lang), lang);
         if (!vo) { allHaveVo = false; break; }
         voClips.push(vo);
       }
-      if (allHaveVo && voClips.length > 0) { voTrack = await concatAudio(voClips); anyVo = true; }
-      else console.warn(`[compile] ${scriptId}: ikke alle scener har speak (${lang}) → tavs`);
+      if (!allHaveVo) console.warn(`[compile] ${scriptId}: ikke alle scener har speak (${lang}) → tavs`);
     }
 
-    const { bytes } = await concatClips({ clips, aspect, audio: voTrack, music });
+    // 2) Scene-varigheder: probet VO-længde hvis muligt, ellers ÷150-estimat
+    const sceneDurs: number[] = [];
+    for (let i = 0; i < scenes.length; i++) {
+      let dur = allHaveVo
+        ? (await probeAudioDurationSec(voClips[i])) ?? estDurationSec(voText(scenes[i], lang))
+        : estDurationSec(voText(scenes[i], lang));
+      if (scenes[i].visualType === "ui-capture") dur = Math.min(dur, 3);
+      sceneDurs.push(Math.max(1.5, dur));
+    }
+
+    // 3) Klip (tilpasset scene-varighed) + caption-tidslinje (absolutte sek)
+    const clips: Uint8Array[] = [];
+    const captions: Array<{ text: string; start: number; end: number }> = [];
+    let cursor = 0;
+    for (let i = 0; i < scenes.length; i++) {
+      clips.push(await sceneClipFor(assets[i], scenes[i], aspect, sceneDurs[i]));
+      if (script.captionsEnabled) {
+        const t = voText(scenes[i], lang);
+        if (t.trim()) captions.push(...captionLinesFor(t, cursor, sceneDurs[i]));
+      }
+      cursor += sceneDurs[i];
+    }
+
+    // 4) Samlet VO-spor (kun når alle scener har speak)
+    let voTrack: Uint8Array | undefined;
+    if (allHaveVo && voClips.length === scenes.length) {
+      voTrack = await concatAudio(voClips);
+      anyVo = true;
+    }
+
+    const { bytes } = await concatClips({
+      clips,
+      aspect,
+      audio: voTrack,
+      music,
+      captions: script.captionsEnabled && captions.length > 0 ? captions : undefined,
+      totalDurationSec: cursor,
+    });
     const key = `video/${crypto.randomUUID()}/drejebog-${lang}.mp4`;
     await media.upload(key, bytes, { contentType: "video/mp4" });
     const [item] = await db

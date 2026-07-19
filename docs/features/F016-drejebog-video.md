@@ -42,3 +42,11 @@ Tjekket: alt via `@broberg/ai-sdk` — `ai.chat` (manus), `ai.image` (scene-stil
 ## Afhængigheder
 
 F016.1 (editor + datamodel), F014 (`videoRender.ts`-søm + ffmpeg-på-prod + `ai.animate`). F016.2's ui-capture-scenetype blokeret på Lens record-flow (019f71ac) — udskudt, ikke blokerende for resten.
+
+## F016.5 — undertekster: timing-beslutning (2026-07-19)
+
+Whisper (OpenAI) er den ENESTE transcribe-adapter i `@broberg/ai-sdk@0.25.0` der emitterer word/segment-timestamps; Azure- og Mistral-adapterne returnerer kun `{text}`. Contentpush har `AZURE_SPEECH_KEY` + `MISTRAL_API_KEY`, men INGEN `OPENAI_API_KEY` → segment-timing er ikke tilgængelig uden en ny nøgle.
+
+**Valgt (AC#0-fallback):** estimat-fordeling ANKRET til den ægte VO-længde. Compile probet nu hver scenes TTS-lyd (`probeAudioDurationSec`) og driver scene-klippets varighed af den — så video, tale OG captions har præcis samme længde pr. scene (fikser samtidig den tidligere ÷150-drift). Scenens speak-tekst deles i caption-linjer (~8 ord) fordelt proportionalt med tegn-længde inden for scenens ægte varighed. Burn-in via timed `sharp`-SVG-overlays i `concatClips` (`overlay ... enable='between(t,start,end)'`; ffmpeg mangler drawtext). AI-broll-klip tilpasses scene-varigheden (`fitClipToDuration`).
+
+**Fremtidig opgradering:** giver Christian en `OPENAI_API_KEY`, kan `ai.transcribe({timestamps:["segment"]})` løfte til ord-præcis timing uden anden kodeændring end at læse `segments` i stedet for estimatet.

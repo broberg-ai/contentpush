@@ -16,6 +16,7 @@ type ScriptRow = {
   renderStatus?: "idle" | "rendering" | "ready" | "failed";
   renderLang?: string | null;
   musicTrackId?: string | null;
+  captionsEnabled?: boolean;
 };
 type MusicTrack = {
   id: string;
@@ -179,6 +180,13 @@ export function DrejebogEditor() {
     previewAudio.volume = 0.6;
     previewAudio.play().catch(() => {});
   }
+  // F016.5: undertekster til/fra (default til)
+  async function toggleCaptions() {
+    if (!openId || !detail) return;
+    const next = !(detail.script.captionsEnabled ?? true);
+    setDetail((d) => d && { ...d, script: { ...d.script, captionsEnabled: next } });
+    await fetch(`/api/scripts/${openId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ captionsEnabled: next }) });
+  }
 
   const total = useMemo(() => (detail ? detail.scenes.reduce((n, s) => n + sceneSecs(s, lang), 0) : 0), [detail, lang]);
 
@@ -336,7 +344,18 @@ export function DrejebogEditor() {
             )}
             <p class="dg-hint">{currentTrack?.credit ?? "Vælg fra din royalty-free hylde — kun når den gør videoen bedre."}</p>
           </div>
-          <div class="dg-opt dg-row"><label>Undertekster</label><span class="dg-toggle on">ord-for-ord ✓</span></div>
+          <div class="dg-opt dg-row">
+            <label>Undertekster</label>
+            <button
+              type="button"
+              class={`dg-toggle${(sc.captionsEnabled ?? true) ? " on" : " off"}`}
+              data-testid="drejebog-captions-toggle"
+              aria-pressed={sc.captionsEnabled ?? true}
+              onClick={toggleCaptions}
+            >
+              {(sc.captionsEnabled ?? true) ? "til ✓" : "fra"}
+            </button>
+          </div>
           <div class="dg-opt"><label>Leverer</label>
             <div class="dg-deliver">
               {(sc.languages ?? ["da", "en"]).map((l) => <span class="pill ok" key={l}>Speak {l.toUpperCase()}</span>)}

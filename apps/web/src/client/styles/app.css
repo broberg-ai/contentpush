@@ -2202,7 +2202,10 @@ h3 {
 .dg-music-play:hover { background: var(--sage, oklch(0.62 0.06 150)); color: #fff; border-color: transparent; }
 .dg-music-play:active { transform: scale(0.92); }
 .dg-row { display: flex; align-items: center; justify-content: space-between; }
-.dg-toggle { font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: 999px; background: var(--sage, oklch(0.62 0.06 150)); color: #fff; }
+.dg-toggle { font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--sage, oklch(0.62 0.06 150)); color: #fff; border: none; cursor: pointer; transition: background 0.12s ease, opacity 0.12s ease, transform 0.08s ease; }
+.dg-toggle.off { background: var(--muted); color: var(--muted-foreground); }
+.dg-toggle:hover { opacity: 0.9; }
+.dg-toggle:active { transform: scale(0.95); }
 .dg-deliver { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
 .dg-deliver .pill { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: var(--muted); color: var(--foreground); }
 .dg-deliver .pill.ok::before { content: "✓ "; color: oklch(0.55 0.09 150); }

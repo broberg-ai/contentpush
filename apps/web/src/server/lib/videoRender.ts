@@ -103,6 +103,117 @@ function runFfmpeg(args: string[]): Promise<void> {
   });
 }
 
+/** Ombryd en caption-linje til ≤N tegn pr. linje (maks 2 linjer, resten trunkeres pænt). */
+function wrapCaption(text: string, maxChars: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    if (cur && (cur + " " + w).length > maxChars) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = cur ? `${cur} ${w}` : w;
+    }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length <= 2) return lines;
+  // Behold de 2 første linjer + ellipsis (caption-vinduet er kort)
+  return [lines[0], `${lines[1]}…`];
+}
+
+/**
+ * F016.5 — fuld-frame transparent caption-overlay: centreret lower-third
+ * undertekst i en afrundet halvtransparent boks (aldrig drawtext; sharp SVG→PNG).
+ */
+async function renderCaptionOverlay(w: number, h: number, text: string): Promise<Buffer> {
+  const base = Math.min(w, h);
+  const fontSize = Math.round(base * 0.046);
+  const lineH = Math.round(fontSize * 1.28);
+  const maxChars = Math.round(w / (fontSize * 0.52));
+  const lines = wrapCaption(text, maxChars);
+  const padX = Math.round(fontSize * 0.7);
+  const padY = Math.round(fontSize * 0.5);
+  const boxH = lines.length * lineH + padY * 2;
+  const longest = lines.reduce((a, b) => (b.length > a.length ? b : a), "");
+  const boxW = Math.min(w - Math.round(w * 0.08), Math.round(longest.length * fontSize * 0.56) + padX * 2);
+  const boxX = Math.round((w - boxW) / 2);
+  const boxY = h - Math.round(base * 0.12) - boxH;
+  const cx = Math.round(w / 2);
+  const firstBaseline = boxY + padY + fontSize;
+
+  const textEls = lines
+    .map(
+      (ln, i) =>
+        `<text x="${cx}" y="${firstBaseline + i * lineH}" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="${fontSize}" font-weight="600" fill="#F5EFE6">${escapeXml(ln)}</text>`,
+    )
+    .join("\n  ");
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+  <rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" rx="${Math.round(fontSize * 0.4)}" fill="rgba(20,14,10,0.72)"/>
+  ${textEls}
+</svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+/** Varighed (sek) af et lydspor via ffprobe. null ved fejl. */
+export async function probeAudioDurationSec(bytes: Uint8Array): Promise<number | null> {
+  const dir = await mkdtemp(join(tmpdir(), "cp-adur-"));
+  const p = join(dir, "a.mp3");
+  await writeFile(p, bytes);
+  try {
+    const out = await new Promise<string>((resolve, reject) => {
+      const proc = spawn("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", p]);
+      let o = "";
+      proc.stdout.on("data", (d) => (o += d.toString()));
+      proc.on("error", reject);
+      proc.on("close", () => resolve(o));
+    });
+    const n = parseFloat(out.trim());
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * F016.5 — tilpas et eksisterende klip (fx et ~5s AI-broll-klip) til en præcis
+ * varighed: loop hvis for kort, trim hvis for langt. Så scene-video = scene-VO
+ * → undertekster + tale ligger synkront.
+ */
+export async function fitClipToDuration(
+  clipBytes: Uint8Array,
+  durationSec: number,
+  aspect: Aspect,
+): Promise<Uint8Array> {
+  const { w, h } = DIMS[aspect];
+  const dur = Math.max(1, durationSec);
+  const dir = await mkdtemp(join(tmpdir(), "cp-fit-"));
+  const inPath = join(dir, "in.mp4");
+  const outPath = join(dir, "out.mp4");
+  try {
+    await writeFile(inPath, clipBytes);
+    await runFfmpeg([
+      "-y",
+      "-stream_loop", "-1", "-i", inPath,
+      "-t", dur.toFixed(3),
+      "-an",
+      "-vf", `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1,fps=${FPS},format=yuv420p`,
+      "-c:v", "libx264",
+      "-pix_fmt", "yuv420p",
+      "-r", String(FPS),
+      "-crf", "20",
+      "-preset", "medium",
+      outPath,
+    ]);
+    return new Uint8Array(await readFile(outPath));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
 /**
  * Renderer én skabelon-animation (still + tekst + Ken Burns) til mp4.
  * Deterministisk, ~$0 (lokal CPU). Kaster ved ffmpeg-fejl.
@@ -269,9 +380,18 @@ export async function concatClips(input: {
   aspect: Aspect;
   audio?: Uint8Array;
   music?: Uint8Array;
+  /** F016.5: tids-synkede undertekster (absolutte sek på det samlede tidsforløb). */
+  captions?: Array<{ text: string; start: number; end: number }>;
+  /** Samlet varighed (sek) — bounder caption-inputs. Kræves når captions gives. */
+  totalDurationSec?: number;
 }): Promise<{ bytes: Uint8Array; durationSec: number; width: number; height: number }> {
   const { w, h } = DIMS[input.aspect];
   if (input.clips.length === 0) throw new Error("Ingen scene-klip at samle");
+  const captions =
+    input.captions && input.totalDurationSec && input.totalDurationSec > 0
+      ? input.captions.filter((c) => c.text.trim() && c.end > c.start)
+      : [];
+  const totalDur = input.totalDurationSec ?? 0;
   const dir = await mkdtemp(join(tmpdir(), "cp-concat-"));
   const outPath = join(dir, "out.mp4");
   try {
@@ -283,20 +403,27 @@ export async function concatClips(input: {
     }
     const args: string[] = ["-y"];
     for (const p of clipPaths) args.push("-i", p);
+    // Caption-PNG-inputs (fuld-frame, loopet til hele varigheden)
+    const capBase = clipPaths.length;
+    for (let k = 0; k < captions.length; k++) {
+      const cp = join(dir, `cap${k}.png`);
+      await writeFile(cp, await renderCaptionOverlay(w, h, captions[k].text));
+      args.push("-loop", "1", "-t", totalDur.toFixed(3), "-i", cp);
+    }
     let voIdx = -1;
     let musIdx = -1;
     if (input.audio) {
       const ap = join(dir, "vo.mp3");
       await writeFile(ap, input.audio);
       args.push("-i", ap);
-      voIdx = clipPaths.length;
+      voIdx = capBase + captions.length;
     }
     if (input.music) {
       const mp = join(dir, "mus.mp3");
       await writeFile(mp, input.music);
       // -stream_loop -1: loop musikken så den dækker hele videoen (trimmes af -shortest)
       args.push("-stream_loop", "-1", "-i", mp);
-      musIdx = clipPaths.length + (voIdx >= 0 ? 1 : 0);
+      musIdx = capBase + captions.length + (voIdx >= 0 ? 1 : 0);
     }
     // Normalisér hvert klip til target-format, saml, og (evt.) mux lyd
     const parts = clipPaths
@@ -307,6 +434,18 @@ export async function concatClips(input: {
       .join(";");
     const concatIn = clipPaths.map((_, i) => `[v${i}]`).join("");
     let filter = `${parts};${concatIn}concat=n=${clipPaths.length}:v=1:a=0[v]`;
+
+    // F016.5: læg hver caption-overlay ind i sit tidsvindue (between(t,start,end))
+    let videoLabel = "[v]";
+    if (captions.length > 0) {
+      filter += ";" + captions.map((_, k) => `[${capBase + k}:v]format=rgba[cf${k}]`).join(";");
+      for (let k = 0; k < captions.length; k++) {
+        const c = captions[k];
+        const next = k === captions.length - 1 ? "[vout]" : `[vc${k}]`;
+        filter += `;${videoLabel}[cf${k}]overlay=0:0:enable='between(t,${c.start.toFixed(3)},${c.end.toFixed(3)})':eof_action=pass${next}`;
+        videoLabel = next;
+      }
+    }
 
     // Lyd: VO + musik (mix, musik duckset) · kun VO · kun musik · ingen
     let audioMap: string | null = null;
@@ -325,11 +464,13 @@ export async function concatClips(input: {
       audioMap = "[a]";
     }
 
-    args.push("-filter_complex", filter, "-map", "[v]");
+    args.push("-filter_complex", filter, "-map", videoLabel);
     if (audioMap) {
       args.push("-map", audioMap, "-c:a", "aac", "-b:a", "160k", "-shortest");
     } else {
       args.push("-an");
+      // Uden lyd-input bounder -t den (ellers loopet caption-input → uendelig)
+      if (captions.length > 0) args.push("-t", totalDur.toFixed(3));
     }
     args.push(
       "-c:v", "libx264",
@@ -341,7 +482,7 @@ export async function concatClips(input: {
       outPath,
     );
     await runFfmpeg(args);
-    return { bytes: new Uint8Array(await readFile(outPath)), durationSec: 0, width: w, height: h };
+    return { bytes: new Uint8Array(await readFile(outPath)), durationSec: totalDur, width: w, height: h };
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

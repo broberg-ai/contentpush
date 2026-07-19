@@ -10,7 +10,7 @@
     "db:migrate": "bun run scripts/migrate.ts"
   },
   "dependencies": {
-    "@broberg/ai-sdk": "0.23.0",
+    "@broberg/ai-sdk": "0.25.0",
     "@broberg/config": "^0.2.0",
     "@broberg/cron": "^0.1.0",
     "@broberg/db-sdk": "^0.1.0",

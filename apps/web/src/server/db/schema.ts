@@ -231,6 +231,10 @@ export const videoScripts = sqliteTable("video_scripts", {
     .notNull()
     .default(false),
   musicTrackId: text("music_track_id"),
+  // F016.5: indbrændte tids-synkede undertekster på compile-output, DEFAULT TIL
+  captionsEnabled: integer("captions_enabled", { mode: "boolean" })
+    .notNull()
+    .default(true),
   status: text("status", { enum: ["draft", "ready"] })
     .notNull()
     .default("draft"),

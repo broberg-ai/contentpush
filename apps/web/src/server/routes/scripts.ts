@@ -31,6 +31,7 @@ const scriptPatch = z.object({
   targetDurationSec: z.number().int().positive().optional(),
   musicEnabled: z.boolean().optional(),
   musicTrackId: z.string().nullable().optional(),
+  captionsEnabled: z.boolean().optional(),
   status: z.enum(["draft", "ready"]).optional(),
 });
 const sceneCreate = z.object({
@@ -175,6 +176,7 @@ export const scriptsRoute = new Hono()
     if (d.targetDurationSec !== undefined) set.targetDurationSec = d.targetDurationSec;
     if (d.musicEnabled !== undefined) set.musicEnabled = d.musicEnabled;
     if (d.musicTrackId !== undefined) set.musicTrackId = d.musicTrackId;
+    if (d.captionsEnabled !== undefined) set.captionsEnabled = d.captionsEnabled;
     if (d.status !== undefined) set.status = d.status;
     const [script] = await db
       .update(tables.videoScripts)

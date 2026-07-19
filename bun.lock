@@ -8,7 +8,7 @@
     "apps/web": {
       "name": "@contentpush/web",
       "dependencies": {
-        "@broberg/ai-sdk": "0.23.0",
+        "@broberg/ai-sdk": "0.25.0",
         "@broberg/config": "^0.2.0",
         "@broberg/cron": "^0.1.0",
         "@broberg/db-sdk": "^0.1.0",
@@ -79,7 +79,7 @@
 
     "@babel/types": ["@babel/types@7.29.7", "", { "dependencies": { "@babel/helper-string-parser": "^7.29.7", "@babel/helper-validator-identifier": "^7.29.7" } }, "sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA=="],
 
-    "@broberg/ai-sdk": ["@broberg/ai-sdk@0.23.0", "", { "dependencies": { "zod": "^3.23.8" } }, "sha512-+YNygCRRV3LD+x37mWTNDUW8tNyTfVYksgJXgy5ZEo4FDW2+c2Q1GtkxmVmbhVR3mhu35cCkosiBwsXVRoUwLQ=="],
+    "@broberg/ai-sdk": ["@broberg/ai-sdk@0.25.0", "", { "dependencies": { "zod": "^3.23.8" } }, "sha512-+SI4WHs94fNjlDcDB9jc8gdWEAWgoWzkXjZp+/MwgQIgpQsaDC6IsVF30vS9kp8+E28+mGxfztPElfLoZ8Aepw=="],
 
     "@broberg/config": ["@broberg/config@0.2.0", "", { "peerDependencies": { "zod": ">=3" } }, "sha512-84GKN6B1szAfCQKgZw58e/jIITPte7TaD1wowZChyrTtgZh5aQBmgpqyITRqFhq+sk/sjUrDwErwQDpcY6VO1g=="],
 
