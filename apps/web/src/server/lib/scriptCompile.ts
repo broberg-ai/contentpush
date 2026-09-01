@@ -228,18 +228,44 @@ export async function measuredCaptionsFor(
     });
     if (!words || words.length === 0) return null;
 
+    // (a) ORDTAL SKAL MATCHE. Azure-TTS udtaler "150" som tre ord, og så ville
+    //     labels falde tilbage til transskriptionen → brugeren ser maskin-tekst
+    //     (småt, uden tegnsætning) i stedet for sin egen. Brugerens tekst vejer
+    //     tungere end timingen: afviger tallet, brug estimatet.
     const src = sourceText.trim().split(/\s+/).filter(Boolean);
-    const labels = src.length === words.length ? src : words.map((w) => w.word);
+    if (src.length !== words.length) {
+      console.warn(
+        `[compile] caption-timing (${lang}): ordtal afviger (kilde ${src.length}, målt ${words.length}) → estimat, så teksten forbliver brugerens egen`,
+      );
+      return null;
+    }
+
+    // (b) MÅLINGEN SKAL KUNNE VÆRE I SCENEN. sceneDurs kan være KORTERE end
+    //     lyden (ui-capture klippes til 3s; est-fallback kan undervurdere), og
+    //     et caption-vindue der rækker ud over scenen tegnes oven i den NÆSTE
+    //     scenes caption — to fuldskærms-overlays samtidig.
+    const spanEnd = words[words.length - 1].end;
+    if (spanEnd > durationSec + 0.05) {
+      console.warn(
+        `[compile] caption-timing (${lang}): målt span ${spanEnd.toFixed(2)}s > scene ${durationSec.toFixed(2)}s → estimat (captions ville løbe ind i næste scene)`,
+      );
+      return null;
+    }
 
     const CHUNK = 8; // samme læsbare linjelængde som estimatet
     const out: Array<{ text: string; start: number; end: number }> = [];
-    for (let i = 0; i < labels.length; i += CHUNK) {
-      const last = Math.min(i + CHUNK, labels.length) - 1;
+    for (let i = 0; i < src.length; i += CHUNK) {
+      const last = Math.min(i + CHUNK, src.length) - 1;
       const start = words[i].start;
       const end = words[last].end;
-      if (!(end > start)) continue;
+      // (c) Et ugyldigt span må IKKE bare springes over — så forsvandt de ord
+      //     fra skærmen uden spor. Hellere hele scenen på estimatet.
+      if (!(end > start)) {
+        console.warn(`[compile] caption-timing (${lang}): ugyldigt ord-span → estimat`);
+        return null;
+      }
       out.push({
-        text: labels.slice(i, last + 1).join(" "),
+        text: src.slice(i, last + 1).join(" "),
         start: startAbs + start,
         end: startAbs + end,
       });
@@ -340,28 +366,52 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
       sceneDurs.push(Math.max(1.5, dur));
     }
 
-    // 3) Klip (tilpasset scene-varighed) + caption-tidslinje (absolutte sek)
-    const clips: Uint8Array[] = [];
-    const captions: Array<{ text: string; start: number; end: number }> = [];
+    // 3) Scenernes absolutte starttider på tidslinjen
+    const starts: number[] = [];
     let cursor = 0;
     for (let i = 0; i < scenes.length; i++) {
-      clips.push(await sceneClipFor(assets[i], scenes[i], aspect, sceneDurs[i]));
-      if (script.captionsEnabled) {
-        const t = voText(scenes[i], lang);
-        if (t.trim()) {
-          // F016.6: MÅLT timing fra scenens egen TTS-lyd; estimat kun som fallback
-          const measured = allHaveVo
-            ? await measuredCaptionsFor(voClips[i], lang, cursor, sceneDurs[i], t)
-            : null;
-          if (measured) measuredScenes++;
-          else estimatedScenes++;
-          captions.push(...(measured ?? captionLinesFor(t, cursor, sceneDurs[i])));
-        }
-      }
+      starts.push(cursor);
       cursor += sceneDurs[i];
     }
 
-    // 4) Samlet VO-spor (kun når alle scener har speak)
+    // 4) Caption-tidslinje. Transskriptionerne køres PARALLELT — de er ét
+    //    netværkskald pr. scene og ville ellers lægge sig oveni en compile der
+    //    allerede tager minutter i én synkron HTTP-request.
+    const captions: Array<{ text: string; start: number; end: number }> = [];
+    let langMeasured = 0;
+    let langEstimated = 0;
+    if (script.captionsEnabled) {
+      const perScene = await Promise.all(
+        scenes.map(async (scene, i) => {
+          const t = voText(scene, lang);
+          if (!t.trim()) return null;
+          // F016.6: MÅLT timing fra scenens egen TTS-lyd; estimat kun som fallback
+          const measured = allHaveVo
+            ? await measuredCaptionsFor(voClips[i], lang, starts[i], sceneDurs[i], t)
+            : null;
+          return { measured: Boolean(measured), lines: measured ?? captionLinesFor(t, starts[i], sceneDurs[i]) };
+        }),
+      );
+      for (const r of perScene) {
+        if (!r) continue;
+        if (r.measured) langMeasured++;
+        else langEstimated++;
+        captions.push(...r.lines);
+      }
+      console.log(
+        `[compile] ${scriptId} (${lang}): caption-timing målt ${langMeasured} / estimat ${langEstimated} af ${scenes.length} scener`,
+      );
+    }
+    measuredScenes += langMeasured;
+    estimatedScenes += langEstimated;
+
+    // 5) Klip (tilpasset scene-varighed) — sekventielt (ffmpeg/AI)
+    const clips: Uint8Array[] = [];
+    for (let i = 0; i < scenes.length; i++) {
+      clips.push(await sceneClipFor(assets[i], scenes[i], aspect, sceneDurs[i]));
+    }
+
+    // 6) Samlet VO-spor (kun når alle scener har speak)
     let voTrack: Uint8Array | undefined;
     if (allHaveVo && voClips.length === scenes.length) {
       voTrack = await concatAudio(voClips);
@@ -402,7 +452,7 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
           ? "estimated"
           : "none";
   console.log(
-    `[compile] ${scriptId}: caption-timing=${captionTiming} (målt ${measuredScenes}, estimat ${estimatedScenes})`,
+    `[compile] ${scriptId}: caption-timing=${captionTiming} (scene×sprog: målt ${measuredScenes}, estimat ${estimatedScenes})`,
   );
 
   return {
