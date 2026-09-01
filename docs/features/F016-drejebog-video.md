@@ -50,3 +50,29 @@ Whisper (OpenAI) er den ENESTE transcribe-adapter i `@broberg/ai-sdk@0.25.0` der
 **Valgt (AC#0-fallback):** estimat-fordeling ANKRET til den ægte VO-længde. Compile probet nu hver scenes TTS-lyd (`probeAudioDurationSec`) og driver scene-klippets varighed af den — så video, tale OG captions har præcis samme længde pr. scene (fikser samtidig den tidligere ÷150-drift). Scenens speak-tekst deles i caption-linjer (~8 ord) fordelt proportionalt med tegn-længde inden for scenens ægte varighed. Burn-in via timed `sharp`-SVG-overlays i `concatClips` (`overlay ... enable='between(t,start,end)'`; ffmpeg mangler drawtext). AI-broll-klip tilpasses scene-varigheden (`fitClipToDuration`).
 
 **Fremtidig opgradering:** giver Christian en `OPENAI_API_KEY`, kan `ai.transcribe({timestamps:["segment"]})` løfte til ord-præcis timing uden anden kodeændring end at læse `segments` i stedet for estimatet.
+
+## F016.6 — ægte ord-timing på undertekster (Azure transcribe)
+
+> Christians go 2026-09-01: "Lad os tage den."
+
+F016.5 leverede undertekster hvor teksten fordeles proportionalt hen over scenens
+ÆGTE VO-længde — et kvalificeret regnestykke, ikke en måling. Fallbacken blev valgt
+fordi kun Whisper (OpenAI) emitterede timestamps, og repoet har ingen OpenAI-nøgle.
+
+**Det er nu løst i pakken.** `@broberg/ai-sdk` 0.25.1+ lader **Azure** honorere
+`timestamps` — parset fra Azure fast-transcriptions `phrases[]/words[]` — så vi får
+segment/ord-timing på den `AZURE_SPEECH_KEY` vi allerede har (EU-resident, ingen ny
+nøgle). Vi fandt selv hullet og meldte det; ai-sdk lukkede det.
+
+**Design:** i `compileScript` transkriberes hver scenes TTS-lyd med
+`ai.transcribe({ audio, language, timestamps:["segment"], override:{provider:"azure"} })`.
+Segmenternes `start`/`end` er relative til scenen → forskydes med scenens absolutte
+start på tidslinjen. Resten af kæden er uændret: samme timed sharp-SVG-overlays i
+`concatClips`, samme captions-toggle, samme burn-in.
+
+**Ship-dark + fallback bevares:** fejler transkriptionen, mangler nøglen, eller kommer
+der ingen segmenter retur, falder scenen tilbage til `captionLinesFor`-estimatet fra
+F016.5. En video må ALDRIG fejle at bygge fordi timing-opslaget svigtede — captions er
+en forbedring, ikke en forudsætning.
+
+**Pris:** ét ekstra Azure-STT-kald pr. scene pr. sprog (~$0.0167/min lyd).

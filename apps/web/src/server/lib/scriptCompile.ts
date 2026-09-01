@@ -167,11 +167,11 @@ async function sceneClipFor(
 /**
  * F016.5 — del scenens speak-tekst i caption-linjer og fordel dem inden for
  * scenens ægte varighed (proportionalt med tegn-længde). Absolutte sek.
- * Timing-kilde: estimat-fordeling ANKRET til den probede VO-længde (AC#0-fallback,
- * fordi ai.transcribe kun giver ord/segment-timing via Whisper/OpenAI-nøgle som
- * dette repo ikke har — Azure/Mistral-adapterne returnerer kun {text}).
+ * F016.6: dette er nu FALLBACKEN. Den primære timing er MÅLT via
+ * measuredCaptionsFor (Azure ord-timestamps); estimatet bruges kun når
+ * transkriptionen fejler, mangler nøgle eller ikke returnerer ord.
  */
-function captionLinesFor(
+export function captionLinesFor(
   text: string,
   startAbs: number,
   durationSec: number,
@@ -192,11 +192,74 @@ function captionLinesFor(
   return out;
 }
 
+/**
+ * F016.6 — MÅLT caption-timing fra scenens TTS-lyd via ai.transcribe (Azure,
+ * EU, samme AZURE_SPEECH_KEY som talen). Returnerer null hvis timing ikke kunne
+ * måles — kalderen falder da tilbage til F016.5-estimatet, så en video ALDRIG
+ * fejler at bygge fordi timing-opslaget svigtede.
+ *
+ * ORD, ikke segmenter. Målt 2026-09-01: Azure lægger hele ytringen i ÉT
+ * `phrases[]`-segment (8,4s tale → 1 segment), så segment-tider ville give én
+ * kæmpe undertekst i 7 sekunder — dårligere end estimatet. Ord-tiderne er
+ * derimod præcise, og vi chunker dem selv til læsbare linjer.
+ *
+ * TEKSTEN er brugerens egen speak-tekst; kun TIDERNE lånes fra de målte ord
+ * (ordtallene matcher 1:1 på TTS-lyd, fordi stemmen siger præcis vores tekst).
+ * Afviger ordtallet, bruges de transkriberede ord frem for at para tekst og tid.
+ */
+export async function measuredCaptionsFor(
+  audio: Uint8Array,
+  lang: string,
+  startAbs: number,
+  durationSec: number,
+  sourceText: string,
+): Promise<Array<{ text: string; start: number; end: number }> | null> {
+  try {
+    // Kopiér til en frisk ArrayBuffer-backet Uint8Array (ai-sdk's signatur)
+    const bytes = new Uint8Array(audio.byteLength);
+    bytes.set(audio);
+    const { words } = await ai.transcribe({
+      audio: bytes,
+      language: lang === "en" ? "en-US" : "da-DK",
+      durationSec,
+      timestamps: ["word"],
+      override: { provider: "azure", model: "neural" },
+      purpose: "contentpush caption-timing",
+    });
+    if (!words || words.length === 0) return null;
+
+    const src = sourceText.trim().split(/\s+/).filter(Boolean);
+    const labels = src.length === words.length ? src : words.map((w) => w.word);
+
+    const CHUNK = 8; // samme læsbare linjelængde som estimatet
+    const out: Array<{ text: string; start: number; end: number }> = [];
+    for (let i = 0; i < labels.length; i += CHUNK) {
+      const last = Math.min(i + CHUNK, labels.length) - 1;
+      const start = words[i].start;
+      const end = words[last].end;
+      if (!(end > start)) continue;
+      out.push({
+        text: labels.slice(i, last + 1).join(" "),
+        start: startAbs + start,
+        end: startAbs + end,
+      });
+    }
+    return out.length > 0 ? out : null;
+  } catch (err) {
+    console.warn(
+      `[compile] caption-timing kunne ikke måles (${lang}) → estimat: ${err instanceof Error ? err.message : err}`,
+    );
+    return null;
+  }
+}
+
 export interface CompileResult {
   renders: Array<{ language: string; mediaId: string }>;
   scenesRendered: number;
   scenesCapped: number;
   hasVoiceover: boolean;
+  /** F016.6: hvor caption-tiderne kom fra (målt via transcribe vs ÷-estimat). */
+  captionTiming: "measured" | "estimated" | "mixed" | "none";
 }
 
 /**
@@ -251,6 +314,8 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
 
   const renders: Array<{ language: string; mediaId: string }> = [];
   let anyVo = false;
+  let measuredScenes = 0;
+  let estimatedScenes = 0;
   for (const lang of languages) {
     // 1) Voiceover pr. scene (ship-dark: kun når TTS-nøgle sat OG alle scener har speak).
     //    VO'ens ÆGTE længde driver scene-varigheden → tale, video og captions synker.
@@ -283,7 +348,15 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
       clips.push(await sceneClipFor(assets[i], scenes[i], aspect, sceneDurs[i]));
       if (script.captionsEnabled) {
         const t = voText(scenes[i], lang);
-        if (t.trim()) captions.push(...captionLinesFor(t, cursor, sceneDurs[i]));
+        if (t.trim()) {
+          // F016.6: MÅLT timing fra scenens egen TTS-lyd; estimat kun som fallback
+          const measured = allHaveVo
+            ? await measuredCaptionsFor(voClips[i], lang, cursor, sceneDurs[i], t)
+            : null;
+          if (measured) measuredScenes++;
+          else estimatedScenes++;
+          captions.push(...(measured ?? captionLinesFor(t, cursor, sceneDurs[i])));
+        }
       }
       cursor += sceneDurs[i];
     }
@@ -320,7 +393,25 @@ export async function compileScript(scriptId: string): Promise<CompileResult> {
     .set({ renderStatus: "ready", renderMediaId: renders[0]?.mediaId ?? null, renderLang: languages[0] })
     .where(eq(tables.videoScripts.id, scriptId));
 
-  return { renders, scenesRendered: scenes.length, scenesCapped: capped, hasVoiceover: anyVo };
+  const captionTiming =
+    measuredScenes > 0 && estimatedScenes > 0
+      ? "mixed"
+      : measuredScenes > 0
+        ? "measured"
+        : estimatedScenes > 0
+          ? "estimated"
+          : "none";
+  console.log(
+    `[compile] ${scriptId}: caption-timing=${captionTiming} (målt ${measuredScenes}, estimat ${estimatedScenes})`,
+  );
+
+  return {
+    renders,
+    scenesRendered: scenes.length,
+    scenesCapped: capped,
+    hasVoiceover: anyVo,
+    captionTiming,
+  };
 }
 
 /** Signerede video-URL'er pr. sprog for en drejebog (til preview/download). */
